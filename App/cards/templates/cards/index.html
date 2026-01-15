@@ -1,0 +1,16 @@
+{% extends "cards/layout.html" %}
+
+{% block title %}
+    Index
+{% endblock %}
+
+{% block body %}
+<ul>
+    {% for card in cards %}
+    <li> 
+        <h2> {{ card.question }} </h2>
+        <p> {{card.answer}} </p>
+    </li>    
+    {% endfor %}
+</ul>
+{% endblock %}

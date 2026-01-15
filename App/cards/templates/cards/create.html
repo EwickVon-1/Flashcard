@@ -1,0 +1,13 @@
+{% extends "cards/layout.html" %}
+
+{% block title %}
+    Create New Card
+{% endblock %}
+
+{% block body %}
+    <form action="{% url 'create' %}", method="post">
+        {% csrf_token %}
+        {{ form }}
+        <input type="submit">
+    </form>
+{% endblock %}
