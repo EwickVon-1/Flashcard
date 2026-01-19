@@ -5,12 +5,7 @@
 {% endblock %}
 
 {% block body %}
+<h2> Your Flashcard Set: </h2>
 <ul>
-    {% for card in cards %}
-    <li> 
-        <h2> {{ card.question }} </h2>
-        <p> {{card.answer}} </p>
-    </li>    
-    {% endfor %}
 </ul>
 {% endblock %}
