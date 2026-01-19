@@ -1,11 +1,10 @@
 {% extends "cards/layout.html" %}
 
 {% block title %}
-    Index
+    {{ name }}
 {% endblock %}
 
 {% block body %}
-<h2> Your Flashcard Set: </h2>
-<ul>
-</ul>
+    <h1> {{ content.name }}</h1>
+    <div> {{ content.description }}</div>
 {% endblock %}

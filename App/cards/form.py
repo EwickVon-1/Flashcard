@@ -1,5 +1,16 @@
 from django import forms
-from .models import Card
+from .models import Card, Set
+
+class NewSet(forms.ModelForm):
+    class Meta:
+        model = Set
+        fields = ["name", 
+                  "description"]
+    
+    widgets = {
+        "description": forms.Textarea(attrs={"rows": 5})
+    }
+
 
 class NewCard(forms.ModelForm):
     class Meta:
@@ -10,4 +21,3 @@ class NewCard(forms.ModelForm):
     widgets = {
         "answer": forms.Textarea(attrs={"rows": 5})
     }
-    
