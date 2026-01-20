@@ -5,18 +5,9 @@ from django.db import IntegrityError
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 
-import random
-
-from .form import NewCard, NewSet
-from .models import Set, Card, User
+from .forms import NewCard, NewSet
+from .models import Card, Set, User
 # Create your views here.
-
-def index(request):
-    cards = Card.objects.all()
-    return render(request, "cards/index.html", {
-        "cards": cards
-    })
-
 def register(request):
     if request.method == "POST":
         # Save the information from the form
@@ -32,7 +23,6 @@ def register(request):
             })
         
         # Attempt to create a new User
-                # Attempt to create new user
         try:
             user = User.objects.create_user(username, email, password)
             user.save()
@@ -66,12 +56,27 @@ def logout_view(request):
     logout(request)
     return redirect("index")
 
+@login_required
+def index(request):
+    owned_sets = Set.objects.filter(owner=request.user)
+    saved_sets = Set.objects.filter(saved_by=request.user)
+
+    return render(request, "cards/index.html", {
+        "owned_sets" : owned_sets, 
+        "saved_sets" : saved_sets
+    })
+
+def search(request):
+    pass
+
 # Look at a Flashcard Set
 def set(request, id, name):
     set = Set.objects.get(id=id)
+    cards = Card.objects.filter(set = set)
     return render(request, "cards/set.html", {
         "name": name,
-        "content": set
+        "content": set,
+        "cards": cards
     })
 
 # Create a new flashcard set
@@ -84,8 +89,9 @@ def create(request):
         if form.is_valid():
             set = form.save(commit=False)
             # Add user ID and then save the form
-            set.user = request.user
+            set.owner = request.user
             set.save()
+            return redirect("index")
         else:
             messages.error(request, "Form not Valid")
 
@@ -97,19 +103,45 @@ def create(request):
 
 # Add new cards to a flashcard set
 @login_required
-def add(request):
+def edit(request, id, name):
+    set = Set.objects.get(id=id)
+
+    # Checks if the user is actually the owner
+    if request.user != set.owner:
+        messages.error(request, "You do not have permission to edit this Flashcard Set")
+        return redirect("set", id=id, name=name)
+
     # If the user submits the form, save it
     if request.method == "POST":
         form = NewCard(request.POST)
 
         if form.is_valid():
-            form.save()
-            return redirect("index")
+            # Save it to the correct Flashcard Set
+            card = form.save(commit=False)
+            card.set = set
+            card.save()
+            return redirect("set", id=id, name=name)
 
         messages.error(request, "Form not Valid")
 
     form = NewCard()
 
-    return render(request, "cards/create.html", {
+    return render(request, "cards/edit.html", {
+        "id": id,
+        "name": name,
         "form": form
+    })
+
+def study(request, id, name):
+    cards = Card.objects.filter(set_id = id)
+    if not cards:
+        messages.error("There are no cards in this Set")
+        redirect("set")
+    
+    first = cards[0]
+
+    return render(request, "cards/study.html", {
+        "name": name,
+        "set_id": id,
+        "card" : first
     })
