@@ -6,5 +6,19 @@
 
 {% block body %}
     <h1> {{ content.name }}</h1>
+    By {{ content.owner.username }}
     <div> {{ content.description }}</div>
+
+    <a href="{% url 'study' content.id content.name %}"> Use Flashcard </a>
+    
+    {% if request.user == content.owner %}
+        <a href="{% url 'edit' content.id content.name %}">Add Cards</a>
+    {% endif %}
+
+    {% for card in cards %}
+         <div> Question: {{ card.question }}</div>
+         <div> Answer: {{ card.answer }}</div>
+    {% empty %}
+        <div>No Cards in Flashcard Set</div>
+    {% endfor %}
 {% endblock %}

@@ -5,7 +5,20 @@
 {% endblock %}
 
 {% block body %}
-<h2> Your Flashcard Set: </h2>
+<h2> Your Flashcard Sets: </h2>
+    {% for set in owned_sets %}
+        <li> 
+            <a href="{% url 'set' set.id set.name %}">{{ set.name }}</a>
+        </li>
+    {% empty %}
+        Make your own! 
+    {% endfor %}
+<h2> Your Saved Sets: </h2>
 <ul>
+    {% for set in saved_sets %}
+        <li>{{ set }}</li>
+    {% empty %}
+        You have no saved cards
+    {% endfor %}
 </ul>
 {% endblock %}

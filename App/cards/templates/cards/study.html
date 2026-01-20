@@ -1,0 +1,12 @@
+{% extends "cards/layout.html" %}
+
+{% block body %}
+    <h3> {{ card.question }} </h3>
+    <button onclick="document.getElementById('ans').style.display='block'"> Reveal Answer</button>
+
+    <div id="ans" style="display:none">
+        {{ card.answer }}
+        <a> Next Question </a>
+    </div>
+{% endblock %}
+
