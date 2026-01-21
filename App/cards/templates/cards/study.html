@@ -5,8 +5,8 @@
     <button onclick="document.getElementById('ans').style.display='block'"> Reveal Answer</button>
 
     <div id="ans" style="display:none">
-        {{ card.answer }}
-        <a> Next Question </a>
+        <div>{{ card.answer }}</div>
+        <a href="{% url 'study' set_id name next_card %}"> Next Question </a>
     </div>
 {% endblock %}
 

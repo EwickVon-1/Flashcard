@@ -9,7 +9,7 @@
     By {{ content.owner.username }}
     <div> {{ content.description }}</div>
 
-    <a href="{% url 'study' content.id content.name %}"> Use Flashcard </a>
+    <a href="{% url 'study' content.id content.name 0 %}"> Use Flashcard </a>
     
     {% if request.user == content.owner %}
         <a href="{% url 'edit' content.id content.name %}">Add Cards</a>

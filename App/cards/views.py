@@ -132,16 +132,19 @@ def edit(request, id, name):
         "form": form
     })
 
-def study(request, id, name):
-    cards = Card.objects.filter(set_id = id)
-    if not cards:
-        messages.error("There are no cards in this Set")
-        redirect("set")
+def study(request, set_id, name, card_id):
+    cards = Card.objects.filter(set_id = set_id)
     
-    first = cards[0]
+    if not cards:
+        return redirect("set", id=set_id, name=name)
+
+    if card_id < 0 or card_id >= len(cards):
+        messages.error(request, "No more cards in this set.")
+        return redirect("set", id=set_id, name=name)
 
     return render(request, "cards/study.html", {
         "name": name,
-        "set_id": id,
-        "card" : first
+        "set_id": set_id,
+        "next_card": (card_id + 1),
+        "card" : cards[card_id]
     })
