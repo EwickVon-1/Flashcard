@@ -10,5 +10,5 @@ urlpatterns = [
     path("create", views.create, name="create"),
     path("<int:id>/<str:name>", views.set, name="set"),
     path("<int:id>/<str:name>/edit", views.edit, name="edit"),
-    path("<int:id>/<str:name>/study", views.study, name="study")
+    path("<int:set_id>/<str:name>/study/<int:card_id>", views.study, name="study")
 ]
