@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 
-from .forms import NewCard, NewSet
+from .forms import Gradeform, NewCard, NewSet
 from .models import Card, Set, User
 # Create your views here.
 def register(request):
@@ -132,19 +132,69 @@ def edit(request, id, name):
         "form": form
     })
 
-def study(request, set_id, name, card_id):
-    cards = Card.objects.filter(set_id = set_id)
-    
-    if not cards:
-        return redirect("set", id=set_id, name=name)
+def study(request, set_id, name):
 
-    if card_id < 0 or card_id >= len(cards):
-        messages.error(request, "No more cards in this set.")
+    # Create a study queue, if there doesn't exist any yet
+    QUEUE_KEY = f"queue.{set_id}"
+    if QUEUE_KEY not in request.session:
+        # Set a new queue session to that initial set of cards
+        request.session[QUEUE_KEY] = []
+
+        # Get initial cards to add to the queue (currently all of them)
+        card_ids = Card.objects.filter(set_id = set_id).values_list('id', flat=True)
+
+        if not card_ids.exists():
+            messages.error("Invalid Cards in Set")
+            return redirect("set", id=set_id, name=name)
+
+        request.session[QUEUE_KEY] = list(card_ids)
+
+    # Check if there already exists a "review" key
+    REVIEW_KEY = f"review.{set_id}"
+    if REVIEW_KEY not in request.session:
+        # Create a new review session
+        request.session[REVIEW_KEY] = []
+    
+    # Create two modes: Queue Mode and Review Mode
+    if (request.session[QUEUE_KEY]):
+        mode = QUEUE_KEY
+    elif (request.session[REVIEW_KEY]):
+        mode = REVIEW_KEY
+    else:
+        # End of Study Session
+        del request.session[QUEUE_KEY]
+        del request.session[REVIEW_KEY]
         return redirect("set", id=set_id, name=name)
+    
+    # If the user got the card incorrect, save in session to review later
+    if request.method == "POST":
+        form = Gradeform(request.POST)
+        
+        if form.is_valid():
+            # Extract user choice from the form
+            card_id = request.POST.get("card_id")
+            grade = form.cleaned_data["grade"]
+            if grade == "Incorrect":
+                request.session[REVIEW_KEY].append(card_id)
+                request.session.modified = True
+        return redirect("study", set_id=set_id, name=name)
+    
+    # Extract the current card
+    curr_card_id = request.session[mode].pop(0)
+    request.session.modified = True
+
+    current_card = Card.objects.get(id=curr_card_id,
+                                    set_id = set_id)
+    
+    # Calculate remaining cards to inform user
+    cards_remaining = len(request.session[QUEUE_KEY]) + len(request.session[REVIEW_KEY]) + 1
+    print(cards_remaining)
 
     return render(request, "cards/study.html", {
         "name": name,
         "set_id": set_id,
-        "next_card": (card_id + 1),
-        "card" : cards[card_id]
+        "card_id": curr_card_id,
+        "card" : current_card,
+        "remaining_cards" : cards_remaining,
+        "grade" : Gradeform()
     })
