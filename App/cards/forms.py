@@ -21,3 +21,11 @@ class NewCard(forms.ModelForm):
     widgets = {
         "answer": forms.Textarea(attrs={"rows": 5})
     }
+
+class Gradeform(forms.Form):
+    choices = [
+        ("Correct", "Correct"),
+        ("Incorrect", "Incorrect")
+    ]
+
+    grade = forms.ChoiceField(choices=choices, widget=forms.RadioSelect)
