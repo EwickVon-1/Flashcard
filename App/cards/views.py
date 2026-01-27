@@ -3,11 +3,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.http import HttpResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 
 from .forms import Gradeform, NewCard, NewSet
 from .models import Card, Set, User
 # Create your views here.
+
 def register(request):
     if request.method == "POST":
         # Save the information from the form
@@ -46,7 +47,7 @@ def login_view(request):
             login(request, user)
             return redirect("index")
         else:
-            return render(request, "auctions/login.html", {
+            return render(request, "cards/login.html", {
                 "message": "Invalid username and/or password."
             })
     else:
@@ -70,12 +71,12 @@ def search(request):
     pass
 
 # Look at a Flashcard Set
-def set(request, id, name):
-    set = Set.objects.get(id=id)
-    cards = Card.objects.filter(set = set)
+def set_view(request, set_id, name):
+    flashcard_set = get_object_or_404(Set, id=set_id)
+    cards = Card.objects.filter(set = flashcard_set)
     return render(request, "cards/set.html", {
         "name": name,
-        "content": set,
+        "content": flashcard_set,
         "cards": cards
     })
 
@@ -87,10 +88,10 @@ def create(request):
         form = NewSet(request.POST)
 
         if form.is_valid():
-            set = form.save(commit=False)
+            flashcard_set = form.save(commit=False)
             # Add user ID and then save the form
-            set.owner = request.user
-            set.save()
+            flashcard_set.owner = request.user
+            flashcard_set.save()
             return redirect("index")
         else:
             messages.error(request, "Form not Valid")
@@ -103,13 +104,13 @@ def create(request):
 
 # Add new cards to a flashcard set
 @login_required
-def edit(request, id, name):
-    set = Set.objects.get(id=id)
+def add(request, set_id, name):
+    flashcard_set = get_object_or_404(Set, id=set_id)
 
     # Checks if the user is actually the owner
-    if request.user != set.owner:
-        messages.error(request, "You do not have permission to edit this Flashcard Set")
-        return redirect("set", id=id, name=name)
+    if request.user != flashcard_set.owner:
+        messages.error(request, "You do not have permission to add a card to this Flashcard Set")
+        return redirect("set_view", set_id=set_id, name=name)
 
     # If the user submits the form, save it
     if request.method == "POST":
@@ -118,22 +119,66 @@ def edit(request, id, name):
         if form.is_valid():
             # Save it to the correct Flashcard Set
             card = form.save(commit=False)
-            card.set = set
+            card.set = flashcard_set
             card.save()
-            return redirect("set", id=id, name=name)
+            return redirect("set_view", set_id=set_id, name=name)
 
         messages.error(request, "Form not Valid")
 
     form = NewCard()
 
-    return render(request, "cards/edit.html", {
-        "id": id,
+    return render(request, "cards/add.html", {
+        "id": set_id,
         "name": name,
         "form": form
     })
 
-def study(request, set_id, name):
+@login_required
+def edit_view(request, set_id, name):
+    flashcard_set = get_object_or_404(Set, id=set_id)
+    # Check if the user is actually the owner
+    if request.user != flashcard_set.owner: 
+        messages.error(request, "You do not have permission edit this Flashcard Set")
+        return redirect("set_view", set_id=set_id, name=name)
+    
+    card = Card.objects.filter(set_id=set_id)
+        
+    return render(request, "cards/edit.html", {
+        "set_id" : set_id,
+        "cards" : card,
+        "set_name" : name
+    })
 
+@login_required
+def edit_card(request, set_id, name, card_id): 
+    flashcard_set = get_object_or_404(Set, id=set_id)
+    # Check if the user is actually the owner
+    if request.user != flashcard_set.owner: 
+        messages.error(request, "You do not have permission edit this Flashcard Set")
+        return redirect("set_view", set_id=set_id, name=name)
+    
+    # POST METHOD
+    card = get_object_or_404(Card, set_id=set_id, id=card_id)
+
+    if request.method == "POST":
+        form = NewCard(request.POST, instance=card)
+
+        if form.is_valid():
+            card.save()
+            return redirect("edit", set_id=set_id, name=name)
+    
+    form = NewCard(instance=card)
+    
+    return render(request, "cards/edit_card.html", {
+        "set_id" : set_id,
+        "card_id" : card_id,
+        "form" : form,
+        "name" : name
+    })
+
+
+@login_required
+def study(request, set_id, name):
     # Create a study queue, if there doesn't exist any yet
     QUEUE_KEY = f"queue.{set_id}"
     if QUEUE_KEY not in request.session:
@@ -144,8 +189,8 @@ def study(request, set_id, name):
         card_ids = Card.objects.filter(set_id = set_id).values_list('id', flat=True)
 
         if not card_ids.exists():
-            messages.error("Invalid Cards in Set")
-            return redirect("set", id=set_id, name=name)
+            messages.error(request, "Invalid Cards in Set")
+            return redirect("set_view", set_id=set_id, name=name)
 
         request.session[QUEUE_KEY] = list(card_ids)
 
@@ -164,7 +209,7 @@ def study(request, set_id, name):
         # End of Study Session
         del request.session[QUEUE_KEY]
         del request.session[REVIEW_KEY]
-        return redirect("set", id=set_id, name=name)
+        return redirect("set_view", set_id=set_id, name=name)
     
     # If the user got the card incorrect, save in session to review later
     if request.method == "POST":
@@ -174,7 +219,7 @@ def study(request, set_id, name):
             # Extract user choice from the form
             card_id = request.POST.get("card_id")
             grade = form.cleaned_data["grade"]
-            if grade == "Incorrect":
+            if grade == "Incorrect" and card_id not in request.session[REVIEW_KEY]:
                 request.session[REVIEW_KEY].append(card_id)
                 request.session.modified = True
         return redirect("study", set_id=set_id, name=name)
@@ -183,12 +228,11 @@ def study(request, set_id, name):
     curr_card_id = request.session[mode].pop(0)
     request.session.modified = True
 
-    current_card = Card.objects.get(id=curr_card_id,
-                                    set_id = set_id)
+    current_card = get_object_or_404(Card, id=curr_card_id,
+                                     set_id = set_id)
     
     # Calculate remaining cards to inform user
     cards_remaining = len(request.session[QUEUE_KEY]) + len(request.session[REVIEW_KEY]) + 1
-    print(cards_remaining)
 
     return render(request, "cards/study.html", {
         "name": name,

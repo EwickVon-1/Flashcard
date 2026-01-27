@@ -1,13 +1,14 @@
 {% extends "cards/layout.html" %}
 
 {% block title %}
-    Add New Card
+Edit a Card
 {% endblock %}
 
 {% block body %}
-<form action="{% url 'edit' id name %}" , method="post">
-    {% csrf_token %}
-    {{ form }}
-    <input type="submit">
-</form>
+    {% for card in cards %}
+        <div>Question: {{ card.question }}</div>
+        <div>Answer: {{ card.answer }}</div>
+        <a href="{% url 'edit_card' set_id set_name card.id %}">Edit Card</a>
+    {% endfor %}
+    <a href="{url 'add' set_id name}">Add a New Card</a>
 {% endblock %}
