@@ -8,7 +8,7 @@
 <h2> Your Flashcard Sets: </h2>
     {% for set in owned_sets %}
         <li> 
-            <a href="{% url 'set' set.id set.name %}">{{ set.name }}</a>
+            <a href="{% url 'set_view' set.id set.name %}">{{ set.name }}</a>
         </li>
     {% empty %}
         Make your own! 
