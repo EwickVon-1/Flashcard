@@ -10,5 +10,5 @@ Edit a Card
         <div>Answer: {{ card.answer }}</div>
         <a href="{% url 'edit_card' set_id set_name card.id %}">Edit Card</a>
     {% endfor %}
-    <a href="{url 'add' set_id name}">Add a New Card</a>
+    <a href="{% url 'add' set_id set_name %}">Add a New Card</a>
 {% endblock %}
