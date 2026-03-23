@@ -13,6 +13,12 @@
     
     {% if request.user == content.owner %}
         <a href="{% url 'edit' content.id content.name %}">Add Cards</a>
+    {% elif request.user.is_authenticated %}
+        {% if request.user in content.saved_by.all %}
+            <a href="{% url 'save_set' content.id content.name %}">Unsave Set</a>
+        {% else %}
+            <a href="{% url 'save_set' content.id content.name %}">Save Set</a>
+        {% endif %}
     {% endif %}
 
     {% for card in cards %}

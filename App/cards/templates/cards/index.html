@@ -16,7 +16,10 @@
 <h2> Your Saved Sets: </h2>
 <ul>
     {% for set in saved_sets %}
-        <li>{{ set }}</li>
+        <li> 
+            {{ set.name }} by {{ set.owner.username }}
+            <a href="{% url 'set_view' set.id set.name %}"> View Set</a>
+        </li>
     {% empty %}
         You have no saved cards
     {% endfor %}

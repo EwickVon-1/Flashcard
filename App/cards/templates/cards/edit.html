@@ -8,7 +8,15 @@ Edit a Card
     {% for card in cards %}
         <div>Question: {{ card.question }}</div>
         <div>Answer: {{ card.answer }}</div>
-        <a href="{% url 'edit_card' set_id set_name card.id %}">Edit Card</a>
+        <div>
+            <a href="{% url 'edit_card' set_id set_name card.id %}">Edit Card</a>
+            <a href="{% url 'delete_card' set_id set_name card.id %}"
+                onclick="return confirm('Are you sure you want to delete this card?');">Delete Card</a>
+        </div>
     {% endfor %}
-    <a href="{% url 'add' set_id set_name %}">Add a New Card</a>
+    <div>
+        <a href="{% url 'add' set_id set_name %}">Add a New Card</a>
+        <a href="{% url 'delete_set' set_id set_name %}"
+            onclick="return confirm('Are you sure you want to delete this set?');">Delete Set</a>
+    </div>
 {% endblock %}

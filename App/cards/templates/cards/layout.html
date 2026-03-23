@@ -9,6 +9,9 @@
 </head>
 <body>
     <ul class="nav">
+        <li class="nav-item">
+            <a class="nav-link active" href="{% url 'search' %}"> Search </a>
+        </li>
         {% if user.is_authenticated %}
         <li class="nav-item">
             <a class="nav-link active" href="{% url 'index' %}"> Your Saved Sets </a>
