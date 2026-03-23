@@ -164,7 +164,7 @@ def edit_card(request, set_id, name, card_id):
         form = NewCard(request.POST, instance=card)
 
         if form.is_valid():
-            card.save()
+            form.save()
             return redirect("edit", set_id=set_id, name=name)
     
     form = NewCard(instance=card)
@@ -217,7 +217,7 @@ def study(request, set_id, name):
         
         if form.is_valid():
             # Extract user choice from the form
-            card_id = request.POST.get("card_id")
+            card_id = int(request.POST.get("card_id"))
             grade = form.cleaned_data["grade"]
             if grade == "Incorrect" and card_id not in request.session[REVIEW_KEY]:
                 request.session[REVIEW_KEY].append(card_id)

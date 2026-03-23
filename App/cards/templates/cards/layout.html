@@ -27,7 +27,10 @@
             <a class="nav-link active" href="{% url 'register' %}"> Register </a>
         </li>
         {% endif %}
-    </ul>
+    </ul> 
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
     {% block body %}
     {% endblock %}
 </body>
