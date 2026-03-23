@@ -68,7 +68,16 @@ def index(request):
     })
 
 def search(request):
-    pass
+    query = request.GET.get("q", "")
+    if query:
+        results = Set.objects.filter(name__icontains=query)
+    else:
+        results = Set.objects.none()
+
+    return render(request, "cards/search.html", {
+        "query": query,
+        "results": results
+    })
 
 # Look at a Flashcard Set
 def set_view(request, set_id, name):
@@ -134,6 +143,36 @@ def add(request, set_id, name):
     })
 
 @login_required
+def delete_card(request, set_id, name, card_id):
+    flashcard_set = get_object_or_404(Set, id=set_id)
+
+    # Checks if the user is the owner
+    if request.user != flashcard_set.owner:
+        messages.error(request, "You do not have permission to delete a card from this Flashcard Set")
+        return redirect("set_view", set_id=set_id, name=name)
+    
+    # If the user submits the form, delete the card
+    card = get_object_or_404(Card, set_id=set_id, id=card_id)
+    card.delete()
+    messages.success(request, f"Deleted Card '{card.question}'")
+    return redirect("edit", set_id=set_id, name=name)
+
+@login_required
+def delete_set(request, set_id, name):
+    flashcard_set = get_object_or_404(Set, id=set_id)
+
+    # Checks if the user is the owner
+    if request.user != flashcard_set.owner:
+        messages.error(request, "You do not have permission to delete this Flashcard Set")
+        return redirect("set_view", set_id=set_id, name=name)
+    
+    # If the user submits the form, delete the set
+    flashcard_set.delete()
+    messages.success(request, f"Deleted '{flashcard_set.name}'")
+    return redirect("index")
+    
+
+@login_required
 def edit_view(request, set_id, name):
     flashcard_set = get_object_or_404(Set, id=set_id)
     # Check if the user is actually the owner
@@ -176,6 +215,26 @@ def edit_card(request, set_id, name, card_id):
         "name" : name
     })
 
+@login_required
+def save_set(request, set_id, name):
+    flashcard_set = get_object_or_404(Set, id=set_id)
+
+    # If the user is the owner, they can't save their own set
+    if request.user == flashcard_set.owner:
+        messages.error(request, "You cannot save your own Flashcard Set")
+        return redirect("set_view", set_id=set_id, name=name)
+
+    # If the user has already saved the set, they unsave the set
+    if request.user in flashcard_set.saved_by.all():
+        flashcard_set.saved_by.remove(request.user)
+        messages.success(request, f"Removed '{flashcard_set.name}' from saved sets.")
+        return redirect("set_view", set_id=set_id, name=name)
+    
+    # Otherwise, save the set for the user
+    request.user.saved_sets.add(flashcard_set)
+    messages.success(request, f"Saved '{flashcard_set.name}' to your saved sets.")
+    return redirect("set_view", set_id=set_id, name=name)
+    
 
 @login_required
 def study(request, set_id, name):
