@@ -24,8 +24,10 @@ class NewCard(forms.ModelForm):
 
 class Gradeform(forms.Form):
     choices = [
-        ("Correct", "Correct"),
-        ("Incorrect", "Incorrect")
+        (0, "Again"),
+        (1, "Hard"),
+        (2, "Good"),
+        (3, "Easy")
     ]
 
     grade = forms.ChoiceField(choices=choices, widget=forms.RadioSelect)

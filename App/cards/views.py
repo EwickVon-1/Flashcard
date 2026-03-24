@@ -1,12 +1,13 @@
+from datetime import date
+
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
-from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
 from .forms import Gradeform, NewCard, NewSet
-from .models import Card, Set, User
+from .models import Card, Set, User, StudyData
 # Create your views here.
 
 def register(request):
@@ -234,70 +235,135 @@ def save_set(request, set_id, name):
     request.user.saved_sets.add(flashcard_set)
     messages.success(request, f"Saved '{flashcard_set.name}' to your saved sets.")
     return redirect("set_view", set_id=set_id, name=name)
-    
 
 @login_required
 def study(request, set_id, name):
-    # Create a study queue, if there doesn't exist any yet
+    
+    # Get the next card to study for the user. There are three cases:
+    # 1. If there are cards that are due for review, return the card with the earliest due date
+    # 2. If there are no cards that are due for review, but there are still cards that haven't been studied, return one of those cards
+    # 3. If there are no cards left to study, redirect to the set view
+
     QUEUE_KEY = f"queue.{set_id}"
+    
     if QUEUE_KEY not in request.session:
-        # Set a new queue session to that initial set of cards
-        request.session[QUEUE_KEY] = []
+        request.session[QUEUE_KEY] = 0
 
-        # Get initial cards to add to the queue (currently all of them)
-        card_ids = Card.objects.filter(set_id = set_id).values_list('id', flat=True)
-
-        if not card_ids.exists():
-            messages.error(request, "Invalid Cards in Set")
-            return redirect("set_view", set_id=set_id, name=name)
-
-        request.session[QUEUE_KEY] = list(card_ids)
-
-    # Check if there already exists a "review" key
-    REVIEW_KEY = f"review.{set_id}"
-    if REVIEW_KEY not in request.session:
-        # Create a new review session
-        request.session[REVIEW_KEY] = []
-    
-    # Create two modes: Queue Mode and Review Mode
-    if (request.session[QUEUE_KEY]):
-        mode = QUEUE_KEY
-    elif (request.session[REVIEW_KEY]):
-        mode = REVIEW_KEY
-    else:
-        # End of Study Session
+    if request.session[QUEUE_KEY] == 10:
         del request.session[QUEUE_KEY]
-        del request.session[REVIEW_KEY]
+        messages.success(request, "You have finished studying this Flashcard Set for now. Great job!")        
         return redirect("set_view", set_id=set_id, name=name)
-    
-    # If the user got the card incorrect, save in session to review later
+
     if request.method == "POST":
         form = Gradeform(request.POST)
         
         if form.is_valid():
-            # Extract user choice from the form
             card_id = int(request.POST.get("card_id"))
-            grade = form.cleaned_data["grade"]
-            if grade == "Incorrect" and card_id not in request.session[REVIEW_KEY]:
-                request.session[REVIEW_KEY].append(card_id)
-                request.session.modified = True
-        return redirect("study", set_id=set_id, name=name)
-    
-    # Extract the current card
-    curr_card_id = request.session[mode].pop(0)
-    request.session.modified = True
+            grade = int(form.cleaned_data["grade"])
 
-    current_card = get_object_or_404(Card, id=curr_card_id,
-                                     set_id = set_id)
+            card = get_object_or_404(Card, id=card_id, set_id=set_id)
+            study_data, created = StudyData.objects.get_or_create(user=request.user, card=card)
+            study_data.update_study_data(grade)
+            return redirect("study", set_id=set_id, name=name)
     
-    # Calculate remaining cards to inform user
-    cards_remaining = len(request.session[QUEUE_KEY]) + len(request.session[REVIEW_KEY]) + 1
-
+    cards_in_set = Card.objects.filter(set_id=set_id)
+    study_data = StudyData.objects.filter(user=request.user,
+                                          card__set_id=set_id,
+                                          due_date__lte=date.today()).order_by("due_date").first()    
+    unstudied_card = cards_in_set.exclude(studied_card__user=request.user).first()
+    
+    if study_data:
+        request.session[QUEUE_KEY] += 1
+        request.session.modified = True
+        card_to_study = study_data.card
+    elif unstudied_card:
+        request.session[QUEUE_KEY] += 1
+        request.session.modified = True
+        card_to_study = unstudied_card
+    else:
+        del request.session[QUEUE_KEY]
+        messages.success(request, "You have finished studying this Flashcard Set for now. Great job!")
+        return redirect("set_view", set_id=set_id, name=name)
+    
     return render(request, "cards/study.html", {
-        "name": name,
-        "set_id": set_id,
-        "card_id": curr_card_id,
-        "card" : current_card,
-        "remaining_cards" : cards_remaining,
-        "grade" : Gradeform()
-    })
+            "name": name,
+            "set_id": set_id,
+            "card_id": card_to_study.id,
+            "card" : card_to_study,
+            "cards_reviewed" : request.session[QUEUE_KEY],
+            "grade" : Gradeform()
+        })
+    
+
+    
+
+
+
+# @login_required
+# def study(request, set_id, name):
+#     # Create a study queue, if there doesn't exist any yet
+#     QUEUE_KEY = f"queue.{set_id}"
+#     if QUEUE_KEY not in request.session:
+#         # Set a new queue session to that initial set of cards
+#         request.session[QUEUE_KEY] = []
+
+#         # Get initial cards to add to the queue (currently all of them)
+#         card_ids = Card.objects.filter(set_id = set_id).values_list('id', flat=True)
+
+#         if not card_ids.exists():
+#             messages.error(request, "Invalid Cards in Set")
+#             return redirect("set_view", set_id=set_id, name=name)
+
+#         request.session[QUEUE_KEY] = list(card_ids)
+
+#     # Check if there already exists a "review" key
+#     REVIEW_KEY = f"review.{set_id}"
+#     if REVIEW_KEY not in request.session:
+#         # Create a new review session
+#         request.session[REVIEW_KEY] = []
+    
+#     # Create two modes: Queue Mode and Review Mode
+#     if (request.session[QUEUE_KEY]):
+#         mode = QUEUE_KEY
+#     elif (request.session[REVIEW_KEY]):
+#         mode = REVIEW_KEY
+#     else:
+#         # End of Study Session
+#         del request.session[QUEUE_KEY]
+#         del request.session[REVIEW_KEY]
+#         return redirect("set_view", set_id=set_id, name=name)
+    
+#     # If the user got the card incorrect, save in session to review later
+#     if request.method == "POST":
+#         form = Gradeform(request.POST)
+        
+#         if form.is_valid():
+#             # Extract user choice from the form
+#             card_id = int(request.POST.get("card_id"))
+#             grade = form.cleaned_data["grade"]
+
+#             if grade == 0 and card_id not in request.session[REVIEW_KEY]:
+#                 request.session[REVIEW_KEY].append(card_id)
+#                 request.session.modified = True
+#         return redirect("study", set_id=set_id, name=name)
+    
+#     # Extract the current card
+#     curr_card_id = request.session[mode].pop(0)
+#     request.session.modified = True
+    
+
+#     current_card = get_object_or_404(Card, id=curr_card_id,
+#                                      set_id = set_id)
+    
+
+#     # Calculate remaining cards to inform user
+#     cards_remaining = len(request.session[QUEUE_KEY]) + len(request.session[REVIEW_KEY]) + 1
+
+#     return render(request, "cards/study.html", {
+#         "name": name,
+#         "set_id": set_id,
+#         "card_id": curr_card_id,
+#         "card" : current_card,
+#         "remaining_cards" : cards_remaining,
+#         "grade" : Gradeform()
+#     })
