@@ -6,10 +6,9 @@ class NewSet(forms.ModelForm):
         model = Set
         fields = ["name", 
                   "description"]
-    
-    widgets = {
+        widgets = {
         "description": forms.Textarea(attrs={"rows": 5})
-    }
+        }
 
 
 class NewCard(forms.ModelForm):
@@ -17,10 +16,9 @@ class NewCard(forms.ModelForm):
         model = Card
         fields = ["question",
                   "answer"]
-
-    widgets = {
+        widgets = {
         "answer": forms.Textarea(attrs={"rows": 5})
-    }
+        }
 
 class Gradeform(forms.Form):
     choices = [

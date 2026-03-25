@@ -1,12 +1,14 @@
 {% extends "cards/layout.html" %}
 
 {% block body %}
-    <h3> {{ card.question }} </h3>
-    <button onclick="document.getElementById('ans').style.display='block'"> Reveal Answer</button>
-
-    <div id="ans" style="display:none">
-        <div>{{ card.answer }}</div>
+    <div class="card" style="width: 18rem;">
+        <div class="card-body">
+            <h5 class="card-title">{{ card.question }}</h5>
+            <button onclick="document.getElementById('ans').style.display='block'"> Reveal Answer</button>
+            <div id="ans" style="display:none" class="card-text">{{ card.answer }}</div>
+        </div>
     </div>
+
     <form action="{% url 'study' set_id name %}" method="post">
         {% csrf_token %}
         {{ grade }}

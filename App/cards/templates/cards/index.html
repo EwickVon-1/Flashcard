@@ -5,23 +5,32 @@
 {% endblock %}
 
 {% block body %}
-<h2> Your Flashcard Sets: </h2>
+<h2 class="card-title m-3"> Your Flashcard Sets </h2>
+<div class ="container-fluid d-flex flex-wrap">
     {% for set in owned_sets %}
-        <li> 
-            <a href="{% url 'set_view' set.id set.name %}">{{ set.name }}</a>
-        </li>
+        <div class="card mx-3 mb-3 shadow-sm" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-text">{{ set.name }}</h5>
+                <p class="card-text">by {{ set.owner.username }}</p>
+                <a href="{% url 'set_view' set.id set.name %}" class="btn btn-primary">View Set</a>
+            </div>
+        </div>
     {% empty %}
         Make your own! 
     {% endfor %}
-<h2> Your Saved Sets: </h2>
-<ul>
+</div>
+<h2 class="card-title m-3"> Your Saved Sets </h2>
+<div class ="container-fluid d-flex flex-wrap">
     {% for set in saved_sets %}
-        <li> 
-            {{ set.name }} by {{ set.owner.username }}
-            <a href="{% url 'set_view' set.id set.name %}"> View Set</a>
-        </li>
+        <div class="card mx-3 mb-3 shadow-sm" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-text">{{ set.name }}</h5>
+                <p class="card-text">by {{ set.owner.username }}</p>
+                <a href="{% url 'set_view' set.id set.name %}" class="btn btn-primary">View Set</a>
+            </div>
+        </div>
     {% empty %}
-        You have no saved cards
+        You have no saved sets!
     {% endfor %}
-</ul>
+</div>
 {% endblock %}

@@ -6,17 +6,19 @@ Edit a Card
 
 {% block body %}
     {% for card in cards %}
-        <div>Question: {{ card.question }}</div>
-        <div>Answer: {{ card.answer }}</div>
-        <div>
-            <a href="{% url 'edit_card' set_id set_name card.id %}">Edit Card</a>
-            <a href="{% url 'delete_card' set_id set_name card.id %}"
-                onclick="return confirm('Are you sure you want to delete this card?');">Delete Card</a>
+        <div class="card m-3">
+            <div class="card-body">
+                <h5 class="card-title">{{ card.question }}</h5>
+                <p class="card-text">{{ card.answer }}</p>
+                <a href="{% url 'edit_card' set_id set_name card.id %}" class="btn btn-primary">Edit Card</a>
+                <a href="{% url 'delete_card' set_id set_name card.id %}" class="btn btn-danger"
+                    onclick="return confirm('Are you sure you want to delete this card?');">Delete Card</a>
+            </div>
         </div>
     {% endfor %}
-    <div>
-        <a href="{% url 'add' set_id set_name %}">Add a New Card</a>
+    <div class="m-3 d-flex gap-3">
+        <a href="{% url 'add' set_id set_name %}" class="btn btn-success mr-3">Add a New Card</a>
         <a href="{% url 'delete_set' set_id set_name %}"
-            onclick="return confirm('Are you sure you want to delete this set?');">Delete Set</a>
+            onclick="return confirm('Are you sure you want to delete this set?');" class="btn btn-danger">Delete Set</a>
     </div>
 {% endblock %}
