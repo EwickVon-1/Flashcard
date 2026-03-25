@@ -65,5 +65,9 @@ class StudyData(models.Model):
         self.easiness = max(1.3, self.easiness)
         self.interval = max(1, self.interval)
 
-        self.due_date = date.today() + timedelta(days=int(self.interval))
+        if quality == 0:
+            self.due_date = date.today()
+            
+        else:
+            self.due_date = date.today() + timedelta(days=int(self.interval))
         self.save()

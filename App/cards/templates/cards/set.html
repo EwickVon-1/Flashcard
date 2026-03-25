@@ -20,10 +20,14 @@
             <a href="{% url 'save_set' content.id content.name %}">Save Set</a>
         {% endif %}
     {% endif %}
-
+    
     {% for card in cards %}
-         <div> Question: {{ card.question }}</div>
-         <div> Answer: {{ card.answer }}</div>
+        <div class="card m-3">
+            <div class="card-body">
+                <h5 class="card-title">{{ card.question }}</h5>
+                <p class="card-text">{{ card.answer }}</p>
+            </div>
+        </div>
     {% empty %}
         <div>No Cards in Flashcard Set</div>
     {% endfor %}
