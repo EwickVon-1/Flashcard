@@ -1,9 +1,11 @@
-from datetime import date
+from datetime import date, timedelta
+import json
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
+from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
 
 from .forms import Gradeform, NewCard, NewSet
@@ -64,6 +66,7 @@ def logout_view(request):
 def index(request):
     owned_sets = Set.objects.filter(owner=request.user)
     saved_sets = Set.objects.filter(saved_by=request.user)
+
 
     return render(request, "cards/index.html", {
         "owned_sets" : owned_sets, 
@@ -237,6 +240,48 @@ def save_set(request, set_id, name):
     request.user.saved_sets.add(flashcard_set)
     messages.success(request, f"Saved '{flashcard_set.name}' to your saved sets.")
     return redirect("set_view", set_id=set_id, name=name)
+
+@login_required
+def stats(request, set_id=None, name=None):
+    base_filter = StudyData.objects.filter(user=request.user)
+    if set_id:
+        base_filter = base_filter.filter(card__set_id=set_id)
+
+    upcoming_cards = (base_filter
+                      .filter(user=request.user, 
+                              due_date__lte=date.today() + timedelta(days=7))
+                      .values("due_date")
+                      .annotate(count=Count("id"))
+                      .order_by("due_date")) 
+
+    reviewed_cards = (base_filter
+                      .filter(user=request.user, 
+                              last_studied__gte=date.today() - timedelta(days=30))
+                      .values("last_studied")
+                      .annotate(count=Count("id"))
+                      .order_by("last_studied"))
+    
+    upcoming_cards_data = {
+    "labels": [card["due_date"].strftime("%Y-%m-%d") for card in upcoming_cards],
+    "values": [card["count"] for card in upcoming_cards],
+    }
+
+    reviewed_cards_data = {
+    "labels": [card["last_studied"].strftime("%Y-%m-%d") for card in reviewed_cards],
+    "values": [card["count"] for card in reviewed_cards],
+    }
+
+
+    return render(request, "cards/stats.html", {
+        "name": name,
+        "username": request.user.username,
+        "upcoming_cards_data": json.dumps(upcoming_cards_data),
+        "reviewed_cards_data": json.dumps(reviewed_cards_data)
+    })
+
+
+
+
 
 @login_required
 def study(request, set_id, name):

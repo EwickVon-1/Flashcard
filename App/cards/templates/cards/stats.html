@@ -1,0 +1,69 @@
+{% extends "cards/layout.html" %}
+
+{% block title %}
+    {{ name }}'s Study Stats
+{% endblock %}
+
+{% block body %}
+
+    <h2>{{ username }}'s Study Stats</h2>
+    {% if name %}
+        <h5>Stats for {{ name }}</h5>
+    {% endif %}
+    
+    <h4>Upcoming Cards</h4>
+    <canvas id="upcomingCardsChart"></canvas>
+    
+    <h4>Reviewed Cards</h4>
+    <canvas id="reviewedCardsChart"></canvas>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const upcomingCards = {{ upcoming_cards_data|safe }};
+        const reviewedCards = {{ reviewed_cards_data|safe }};
+
+        const upcomingCardsCtx = document.getElementById('upcomingCardsChart');
+        const reviewedCardsCtx = document.getElementById('reviewedCardsChart');
+
+        new Chart(upcomingCardsCtx, {
+            type: 'bar',
+            data: {
+                labels: upcomingCards.labels,
+                datasets: [{
+                    label: 'Cards Due',
+                    data: upcomingCards.values,
+                    borderWidth: 1,
+                }],
+            },
+            options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+            },
+        });
+
+        new Chart(reviewedCardsCtx, {
+            type: 'bar',
+            data: {
+                labels: reviewedCards.labels,
+                datasets: [{
+                    label: 'Cards Reviewed',
+                    data: reviewedCards.values,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            },
+        });
+    </script>
+{% endblock %}

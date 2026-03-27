@@ -30,6 +30,7 @@ class StudyData(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="study_data")
     card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name="studied_card")
     due_date = models.DateField(default=date.today)
+    last_studied = models.DateField(null=True, blank=True)
     interval = models.IntegerField(default=1)
     repetitions = models.IntegerField(default=0)
     easiness = models.FloatField(default=2.5)
@@ -38,6 +39,7 @@ class StudyData(models.Model):
         return f"{self.user.username} - {self.card.question}"
     
     def update_study_data(self, quality):
+        self.last_studied = date.today()
         if quality < 0 or quality > 3:
             raise ValueError("Quality must be between 0 and 3")
 
