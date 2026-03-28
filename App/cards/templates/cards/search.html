@@ -7,6 +7,9 @@
 {% block body %}
     {% if query %}
         <h2>Results for "{{ query }}"</h2>
+    {% else %}
+        <h2>All Flashcard Sets</h2>
+    {% endif %}
         {% if results %}
             <ul>
                 {% for set in results %}
@@ -19,5 +22,4 @@
         {% else %}
             <p>No results found for "{{ query }}".</p>
         {% endif %}
-    {% endif %}
 {% endblock %}
