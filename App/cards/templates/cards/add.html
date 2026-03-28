@@ -7,7 +7,7 @@
 {% block body %}
 <form action="{% url 'add' id name %}" , method="post">
     {% csrf_token %}
-    {{ form }}
+    {{ form_as_p }}
     <input type="submit">
 </form>
 {% endblock %}

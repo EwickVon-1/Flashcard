@@ -1,0 +1,75 @@
+Traceback (most recent call last):
+  File "/Users/ericvo/Flashcard/App/manage.py", line 22, in <module>
+    main()
+    ~~~~^^
+  File "/Users/ericvo/Flashcard/App/manage.py", line 18, in main
+    execute_from_command_line(sys.argv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/core/management/__init__.py", line 443, in execute_from_command_line
+    utility.execute()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/core/management/__init__.py", line 437, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/core/management/base.py", line 420, in run_from_argv
+    self.execute(*args, **cmd_options)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/core/management/base.py", line 464, in execute
+    output = self.handle(*args, **options)
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/core/management/base.py", line 111, in wrapper
+    res = handle_func(*args, **kwargs)
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/core/management/commands/migrate.py", line 354, in handle
+    post_migrate_state = executor.migrate(
+        targets,
+    ...<3 lines>...
+        fake_initial=fake_initial,
+    )
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/migrations/executor.py", line 137, in migrate
+    state = self._migrate_all_forwards(
+        state, plan, full_plan, fake=fake, fake_initial=fake_initial
+    )
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/migrations/executor.py", line 169, in _migrate_all_forwards
+    state = self.apply_migration(
+        state, migration, fake=fake, fake_initial=fake_initial
+    )
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/migrations/executor.py", line 257, in apply_migration
+    state = migration.apply(state, schema_editor)
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/migrations/migration.py", line 132, in apply
+    operation.database_forwards(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self.app_label, schema_editor, old_state, project_state
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/migrations/operations/fields.py", line 118, in database_forwards
+    schema_editor.add_field(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        from_model,
+        ^^^^^^^^^^^
+        field,
+        ^^^^^^
+    )
+    ^
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/backends/sqlite3/schema.py", line 325, in add_field
+    self._remake_table(model, create_field=field)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/backends/sqlite3/schema.py", line 151, in _remake_table
+    self.effective_default(create_field)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/backends/base/schema.py", line 491, in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/models/fields/__init__.py", line 1011, in get_db_prep_save
+    return self.get_db_prep_value(value, connection=connection, prepared=False)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/models/fields/__init__.py", line 1541, in get_db_prep_value
+    value = self.get_prep_value(value)
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/models/fields/__init__.py", line 1536, in get_prep_value
+    return self.to_python(value)
+           ~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/models/fields/__init__.py", line 1492, in to_python
+    parsed = parse_date(value)
+  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/utils/dateparse.py", line 74, in parse_date
+    return datetime.date.fromisoformat(value)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+TypeError: fromisoformat: argument must be str
