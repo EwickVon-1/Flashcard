@@ -1,75 +1,200 @@
+Creating test database for alias 'default'...
+............EE..EEEE.EE
+======================================================================
+ERROR: test_expired_token_triggers_refresh (cards.tests.GetValidTokenTests.test_expired_token_triggers_refresh)
+----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/Users/ericvo/Flashcard/App/manage.py", line 22, in <module>
-    main()
-    ~~~~^^
-  File "/Users/ericvo/Flashcard/App/manage.py", line 18, in main
-    execute_from_command_line(sys.argv)
-    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/core/management/__init__.py", line 443, in execute_from_command_line
-    utility.execute()
-    ~~~~~~~~~~~~~~~^^
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/core/management/__init__.py", line 437, in execute
-    self.fetch_command(subcommand).run_from_argv(self.argv)
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/core/management/base.py", line 420, in run_from_argv
-    self.execute(*args, **cmd_options)
-    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/core/management/base.py", line 464, in execute
-    output = self.handle(*args, **options)
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/core/management/base.py", line 111, in wrapper
-    res = handle_func(*args, **kwargs)
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/core/management/commands/migrate.py", line 354, in handle
-    post_migrate_state = executor.migrate(
-        targets,
-    ...<3 lines>...
-        fake_initial=fake_initial,
-    )
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/migrations/executor.py", line 137, in migrate
-    state = self._migrate_all_forwards(
-        state, plan, full_plan, fake=fake, fake_initial=fake_initial
-    )
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/migrations/executor.py", line 169, in _migrate_all_forwards
-    state = self.apply_migration(
-        state, migration, fake=fake, fake_initial=fake_initial
-    )
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/migrations/executor.py", line 257, in apply_migration
-    state = migration.apply(state, schema_editor)
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/migrations/migration.py", line 132, in apply
-    operation.database_forwards(
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
-        self.app_label, schema_editor, old_state, project_state
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/migrations/operations/fields.py", line 118, in database_forwards
-    schema_editor.add_field(
-    ~~~~~~~~~~~~~~~~~~~~~~~^
-        from_model,
-        ^^^^^^^^^^^
-        field,
-        ^^^^^^
-    )
-    ^
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/backends/sqlite3/schema.py", line 325, in add_field
-    self._remake_table(model, create_field=field)
-    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/backends/sqlite3/schema.py", line 151, in _remake_table
-    self.effective_default(create_field)
-    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/backends/base/schema.py", line 491, in effective_default
-    return field.get_db_prep_save(self._effective_default(field), self.connection)
-           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/models/fields/__init__.py", line 1011, in get_db_prep_save
-    return self.get_db_prep_value(value, connection=connection, prepared=False)
-           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/models/fields/__init__.py", line 1541, in get_db_prep_value
-    value = self.get_prep_value(value)
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/models/fields/__init__.py", line 1536, in get_prep_value
-    return self.to_python(value)
-           ~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/db/models/fields/__init__.py", line 1492, in to_python
-    parsed = parse_date(value)
-  File "/Users/ericvo/Flashcard/App/.venv/lib/python3.14/site-packages/django/utils/dateparse.py", line 74, in parse_date
-    return datetime.date.fromisoformat(value)
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-TypeError: fromisoformat: argument must be str
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1429, in patched
+    with self.decoration_helper(patched,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+                                args,
+                                ^^^^^
+                                keywargs) as (newargs, newkeywargs):
+                                ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1411, in decoration_helper
+    arg = exit_stack.enter_context(patching)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1487, in __enter__
+    self.target = self.getter()
+                  ~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pkgutil.py", line 473, in resolve_name
+    result = getattr(result, p)
+AttributeError: module 'cards' has no attribute 'spotify'
+
+======================================================================
+ERROR: test_failed_refresh_returns_none (cards.tests.GetValidTokenTests.test_failed_refresh_returns_none)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1429, in patched
+    with self.decoration_helper(patched,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+                                args,
+                                ^^^^^
+                                keywargs) as (newargs, newkeywargs):
+                                ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1411, in decoration_helper
+    arg = exit_stack.enter_context(patching)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1487, in __enter__
+    self.target = self.getter()
+                  ~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pkgutil.py", line 473, in resolve_name
+    result = getattr(result, p)
+AttributeError: module 'cards' has no attribute 'spotify'
+
+======================================================================
+ERROR: test_failed_refresh (cards.tests.RefreshTokenTests.test_failed_refresh)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1429, in patched
+    with self.decoration_helper(patched,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+                                args,
+                                ^^^^^
+                                keywargs) as (newargs, newkeywargs):
+                                ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1411, in decoration_helper
+    arg = exit_stack.enter_context(patching)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1487, in __enter__
+    self.target = self.getter()
+                  ~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pkgutil.py", line 473, in resolve_name
+    result = getattr(result, p)
+AttributeError: module 'cards' has no attribute 'spotify'
+
+======================================================================
+ERROR: test_refresh_token_rotated (cards.tests.RefreshTokenTests.test_refresh_token_rotated)
+Spotify sometimes returns a new refresh token.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1429, in patched
+    with self.decoration_helper(patched,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+                                args,
+                                ^^^^^
+                                keywargs) as (newargs, newkeywargs):
+                                ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1411, in decoration_helper
+    arg = exit_stack.enter_context(patching)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1487, in __enter__
+    self.target = self.getter()
+                  ~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pkgutil.py", line 473, in resolve_name
+    result = getattr(result, p)
+AttributeError: module 'cards' has no attribute 'spotify'
+
+======================================================================
+ERROR: test_successful_refresh (cards.tests.RefreshTokenTests.test_successful_refresh)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1429, in patched
+    with self.decoration_helper(patched,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+                                args,
+                                ^^^^^
+                                keywargs) as (newargs, newkeywargs):
+                                ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1411, in decoration_helper
+    arg = exit_stack.enter_context(patching)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1487, in __enter__
+    self.target = self.getter()
+                  ~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pkgutil.py", line 473, in resolve_name
+    result = getattr(result, p)
+AttributeError: module 'cards' has no attribute 'spotify'
+
+======================================================================
+ERROR: test_failed_token_exchange (cards.tests.RequestTokenTests.test_failed_token_exchange)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1429, in patched
+    with self.decoration_helper(patched,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+                                args,
+                                ^^^^^
+                                keywargs) as (newargs, newkeywargs):
+                                ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1411, in decoration_helper
+    arg = exit_stack.enter_context(patching)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1487, in __enter__
+    self.target = self.getter()
+                  ~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pkgutil.py", line 473, in resolve_name
+    result = getattr(result, p)
+AttributeError: module 'cards' has no attribute 'spotify'
+
+======================================================================
+ERROR: test_successful_token_exchange (cards.tests.RequestTokenTests.test_successful_token_exchange)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1429, in patched
+    with self.decoration_helper(patched,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+                                args,
+                                ^^^^^
+                                keywargs) as (newargs, newkeywargs):
+                                ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1411, in decoration_helper
+    arg = exit_stack.enter_context(patching)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1487, in __enter__
+    self.target = self.getter()
+                  ~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pkgutil.py", line 473, in resolve_name
+    result = getattr(result, p)
+AttributeError: module 'cards' has no attribute 'spotify'
+
+======================================================================
+ERROR: test_verifier_removed_from_session_after_use (cards.tests.RequestTokenTests.test_verifier_removed_from_session_after_use)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1429, in patched
+    with self.decoration_helper(patched,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+                                args,
+                                ^^^^^
+                                keywargs) as (newargs, newkeywargs):
+                                ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1411, in decoration_helper
+    arg = exit_stack.enter_context(patching)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/mock.py", line 1487, in __enter__
+    self.target = self.getter()
+                  ~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pkgutil.py", line 473, in resolve_name
+    result = getattr(result, p)
+AttributeError: module 'cards' has no attribute 'spotify'
+
+----------------------------------------------------------------------
+Ran 23 tests in 1.707s
+
+FAILED (errors=8)
+Destroying test database for alias 'default'...

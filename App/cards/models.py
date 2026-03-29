@@ -1,10 +1,23 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models 
+from django.utils import timezone
 from datetime import date, timedelta
 
 # Create your models here.
 class User(AbstractUser):
     pass
+
+class SpotifyToken(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="spotify_token")
+    access_token = models.CharField(max_length=255)
+    refresh_token = models.CharField(max_length=255)
+    expires_at = models.DateTimeField()
+
+    def __str__(self):
+        return f"{self.user.username} - Spotify Token"
+    
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
 
 class Set(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sets")
@@ -19,6 +32,9 @@ class Card(models.Model):
     set = models.ForeignKey(Set, on_delete=models.CASCADE, related_name="in_set", null=True, blank=True)
     question = models.TextField()
     answer = models.TextField()
+    preview_url = models.URLField(null=True, blank=True)
+    album_art_url = models.URLField(null=True, blank=True)
+    track_id = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
         return self.question

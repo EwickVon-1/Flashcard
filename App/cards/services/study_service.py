@@ -39,7 +39,6 @@ def create_query(request, name, set_id):
 def increment_query(request, key):    
     request.session[key] += 1
     request.session.modified = True
-    print(f"Incremented query {key} to {request.session[key]}")
     return request.session[key]
 
 
