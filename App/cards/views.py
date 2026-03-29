@@ -9,11 +9,13 @@ from cards.services.auth_service import register_user
 from cards.services.set_service import toggle_save_set
 from cards.services.stats_service import get_study_stats
 from cards.services.study_service import create_query, get_next_card, process_grade, increment_query, destroy_query
+from cards.services.spotify_service import get_spotify_client, search_track, get_playlist_tracks, build_flashcard_data
 from cards.utils.form_handler import handle_form
 from cards.utils.permissions import authenticate_user_permission
+from cards.utils.oauth_pkce import get_auth_url, request_token, get_valid_token
 
-from .forms import registerForm, loginForm, Gradeform, NewCard, NewSet
-from .models import Card, Set, User, StudyData
+from .forms import SearchForm, SpotifySet, registerForm, loginForm, Gradeform, NewCard, NewSet
+from .models import Card, Set, SpotifyToken, User, StudyData
 # Create your views here.
 
 QUEUE_PREFIX = "queue"
@@ -63,6 +65,36 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
+    return redirect("index")
+
+@login_required
+def spotify_auth(request):
+    return redirect(get_auth_url(request))
+
+@login_required
+def spotify_callback(request):
+    error = request.GET.get("error")
+    if error:
+        messages.error(request, f"Spotify authentication failed: {error}")
+        return redirect("index")
+    
+    code = request.GET.get("code")
+    if not code:
+        messages.error(request, "Spotify authentication failed: No code provided.")
+        return redirect("index")
+    
+    if not request_token(request, code):
+        messages.error(request, "Spotify authentication failed: Unable to obtain token.")
+        return redirect("index")
+    return redirect("index")
+
+@login_required
+def spotify_disconnect(request):
+    try:
+        request.user.spotifytoken.delete()
+        messages.success(request, "Spotify account disconnected.")
+    except SpotifyToken.DoesNotExist:
+        messages.info(request, "No Spotify account to disconnect.") 
     return redirect("index")
 
 @login_required
@@ -169,21 +201,6 @@ def delete_set(request, set_id, name):
     messages.success(request, f"Deleted '{flashcard_set.name}'")
     return redirect("index")
     
-
-@login_required
-def edit_view(request, set_id, name):
-    flashcard_set = get_object_or_404(Set, id=set_id)
-    # Check if the user is actually the owner
-    authenticate_user_permission(request, flashcard_set, "set_view", set_id, name)
-    
-    card = Card.objects.filter(set_id=set_id)
-        
-    return render(request, "cards/edit.html", {
-        "set_id" : set_id,
-        "cards" : card,
-        "set_name" : name
-    })
-
 @login_required
 def edit_card(request, set_id, name, card_id): 
     flashcard_set = get_object_or_404(Set, id=set_id)
@@ -205,6 +222,21 @@ def edit_card(request, set_id, name, card_id):
         "form" : form,
         "name" : name
     })
+
+@login_required
+def edit_view(request, set_id, name):
+    flashcard_set = get_object_or_404(Set, id=set_id)
+    # Check if the user is actually the owner
+    authenticate_user_permission(request, flashcard_set, "set_view", set_id, name)
+    
+    card = Card.objects.filter(set_id=set_id)
+        
+    return render(request, "cards/edit.html", {
+        "set_id" : set_id,
+        "cards" : card,
+        "set_name" : name
+    })
+
 
 @login_required
 def save_set(request, set_id, name):
@@ -284,3 +316,67 @@ def study(request, set_id, name):
             "cards_reviewed" : request.session.get(queue_key, 0),
             "grade" : Gradeform()
         })
+
+@login_required
+def spotify_search(request):
+    # query = request.GET.get("q", "")
+    # tracks = search_track(query) if query else []
+
+    search_form, is_valid = handle_form(request, SearchForm, method="GET")
+    tracks = []
+
+    if is_valid:
+        token = get_valid_token(request.user)
+        if not token:
+            messages.error(request, "Spotify authentication required to search tracks.")
+            return redirect("spotify_auth")
+        
+        sp = get_spotify_client(token)
+        tracks = search_track(sp, search_form.cleaned_data["query"])
+        
+
+    return render(request, "cards/spotify_search.html", {
+        "form": search_form,
+        "set_form": SpotifySet(),
+        "tracks": tracks
+    })
+
+@login_required
+def spotify_create_set(request):
+    form, is_valid = handle_form(request, SpotifySet)
+    if is_valid:
+        track_ids = request.POST.getlist("track_ids")
+        token = get_valid_token(request.user)
+
+        if not token:
+            messages.error(request, "Spotify authentication required to create set from tracks.")
+            return redirect("spotify_auth")
+        
+        if not track_ids:
+            messages.error(request, "No tracks selected.")
+            return redirect("spotify_search")
+        
+        flashcard_set = Set.objects.create(
+            owner=request.user,
+            name=form.cleaned_data["set_name"],
+            description=form.cleaned_data("set_description", "")
+        )
+
+        
+        sp = get_spotify_client(token)
+        for track_id in track_ids:
+            track = sp.track(track_id)
+            card_dicts = build_flashcard_data(track)
+            for card_data in card_dicts:
+                Card.objects.create(
+                    set=flashcard_set,
+                    question=card_data["question"],
+                    answer=card_data["answer"],
+                    preview_url=card_data["preview_url"],
+                    track_id=card_data["track_id"],
+                    album_art_url=card_data["album_art_url"]
+                )
+        messages.success(request, f"Created set '{flashcard_set.name}' with {len(track_ids)} tracks!")
+        return redirect("set_view", set_id=flashcard_set.id, name=flashcard_set.name)
+    
+    return redirect("spotify_search")
