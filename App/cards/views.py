@@ -9,13 +9,14 @@ from cards.services.auth_service import register_user
 from cards.services.set_service import toggle_save_set
 from cards.services.stats_service import get_study_stats
 from cards.services.study_service import create_query, get_next_card, process_grade, increment_query, destroy_query
-from cards.services.spotify_service import get_spotify_client, search_track, get_playlist_tracks, build_flashcard_data
+from cards.services.youtube_service import get_youtube_client, search_videos, build_search_query
+from cards.services.lastfm_services import search_track, get_track_info, build_flashcard_data
 from cards.utils.form_handler import handle_form
 from cards.utils.permissions import authenticate_user_permission
-from cards.utils.oauth_pkce import get_auth_url, request_token, get_valid_token
+from cards.utils.google_oauth import get_auth_url, request_token, get_valid_token
 
-from .forms import SearchForm, SpotifySet, registerForm, loginForm, Gradeform, NewCard, NewSet
-from .models import Card, Set, SpotifyToken, User, StudyData
+from .forms import SearchForm, YoutubeSet, registerForm, loginForm, Gradeform, NewCard, NewSet
+from .models import Card, Set, GoogleToken, User, StudyData
 # Create your views here.
 
 QUEUE_PREFIX = "queue"
@@ -68,33 +69,33 @@ def logout_view(request):
     return redirect("index")
 
 @login_required
-def spotify_auth(request):
+def google_auth(request):
     return redirect(get_auth_url(request))
 
 @login_required
-def spotify_callback(request):
+def google_callback(request):
     error = request.GET.get("error")
     if error:
-        messages.error(request, f"Spotify authentication failed: {error}")
+        messages.error(request, f"Google authentication failed: {error}")
         return redirect("index")
     
     code = request.GET.get("code")
     if not code:
-        messages.error(request, "Spotify authentication failed: No code provided.")
+        messages.error(request, "Google authentication failed: No code provided.")
         return redirect("index")
     
     if not request_token(request, code):
-        messages.error(request, "Spotify authentication failed: Unable to obtain token.")
+        messages.error(request, "Google authentication failed: Unable to obtain token.")
         return redirect("index")
     return redirect("index")
 
 @login_required
-def spotify_disconnect(request):
+def google_disconnect(request):
     try:
-        request.user.spotifytoken.delete()
-        messages.success(request, "Spotify account disconnected.")
-    except SpotifyToken.DoesNotExist:
-        messages.info(request, "No Spotify account to disconnect.") 
+        request.user.google_token.delete()
+        messages.success(request, "Google account disconnected.")
+    except GoogleToken.DoesNotExist:
+        messages.info(request, "No Google account to disconnect.") 
     return redirect("index")
 
 @login_required
@@ -318,7 +319,7 @@ def study(request, set_id, name):
         })
 
 @login_required
-def spotify_search(request):
+def music_search(request):
     # query = request.GET.get("q", "")
     # tracks = search_track(query) if query else []
 
@@ -326,57 +327,70 @@ def spotify_search(request):
     tracks = []
 
     if is_valid:
-        token = get_valid_token(request.user)
-        if not token:
-            messages.error(request, "Spotify authentication required to search tracks.")
-            return redirect("spotify_auth")
-        
-        sp = get_spotify_client(token)
-        tracks = search_track(sp, search_form.cleaned_data["query"])
-        
-
-    return render(request, "cards/spotify_search.html", {
+        query = search_form.cleaned_data["query"]
+        tracks = search_track(query) if query else []
+                
+    return render(request, "cards/music_search.html", {
         "form": search_form,
-        "set_form": SpotifySet(),
+        "set_form": YoutubeSet(),
         "tracks": tracks
     })
 
 @login_required
-def spotify_create_set(request):
-    form, is_valid = handle_form(request, SpotifySet)
+def create_set(request):
+    artist = request.GET.get("artist") or request.POST.get("artist")
+    title = request.GET.get("title") or request.POST.get("title")
+
+    if not artist or not title:
+        messages.error(request, "Missing artist or title parameters.")
+        return redirect("music_search")
+    
+    track_info = get_track_info(artist, title)
+    if not track_info:
+        messages.error(request, "Could not find track information. Please try again.")
+        return redirect("music_search")
+    
+    form, is_valid = handle_form(request, NewSet)
+
     if is_valid:
-        track_ids = request.POST.getlist("track_ids")
-        token = get_valid_token(request.user)
+        video_id = request.POST.get("video_id")
+        card_types = request.POST.getlist("card_types") or None
 
-        if not token:
-            messages.error(request, "Spotify authentication required to create set from tracks.")
-            return redirect("spotify_auth")
-        
-        if not track_ids:
-            messages.error(request, "No tracks selected.")
-            return redirect("spotify_search")
-        
-        flashcard_set = Set.objects.create(
-            owner=request.user,
-            name=form.cleaned_data["set_name"],
-            description=form.cleaned_data("set_description", "")
-        )
+        if not video_id:
+            messages.error(request, "You must select a YouTube video.")
+        else:
+            flashcard_set = form.save(commit=False)
+            flashcard_set.owner = request.user
+            flashcard_set.save()
 
-        
-        sp = get_spotify_client(token)
-        for track_id in track_ids:
-            track = sp.track(track_id)
-            card_dicts = build_flashcard_data(track)
-            for card_data in card_dicts:
+            flashcard_data = build_flashcard_data(track_info, video_id, card_types)
+            for data in flashcard_data:
                 Card.objects.create(
                     set=flashcard_set,
-                    question=card_data["question"],
-                    answer=card_data["answer"],
-                    preview_url=card_data["preview_url"],
-                    track_id=card_data["track_id"],
-                    album_art_url=card_data["album_art_url"]
+                    question=data["question"],
+                    answer=data["answer"],
+                    video_id=video_id,
+                    album_art_url=track_info["album_art"]
                 )
-        messages.success(request, f"Created set '{flashcard_set.name}' with {len(track_ids)} tracks!")
-        return redirect("set_view", set_id=flashcard_set.id, name=flashcard_set.name)
+            messages.success(request, f"Created '{flashcard_set.name}' with {len(flashcard_data)} cards!")
+            return redirect("set_view", set_id=flashcard_set.id, name=flashcard_set.name)
+        
+    token = get_valid_token(request.user)
+    if not token:
+        messages.error(request, "You must connect your Google account to create a set from a song.")
+        return redirect("music_search")
     
-    return redirect("spotify_search")
+    yt = get_youtube_client(token.access_token)
+    query = build_search_query(track_info)
+    videos = search_videos(yt, query)
+    
+    return render(request, "cards/create_set.html", { 
+        "form": form,
+        "track_info": track_info,
+        "videos": videos,
+        "artist": artist,
+        "title": title,
+    })
+
+    
+    

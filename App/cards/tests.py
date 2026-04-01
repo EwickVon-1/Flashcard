@@ -5,7 +5,7 @@ from django.utils import timezone
 from datetime import timedelta
 import base64, hashlib
 
-from cards.utils.oauth_pkce import (
+from cards.utils.google_oauth import (
     generate_code_verifier,
     generate_code_challenge,
     get_auth_url,
@@ -13,7 +13,7 @@ from cards.utils.oauth_pkce import (
     refresh_token,
     get_valid_token,
 )
-from cards.models import SpotifyToken
+from cards.models import GoogleToken
 
 User = get_user_model()
 
@@ -71,11 +71,11 @@ class GetAuthUrlTests(TestCase):
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="testuser", password="pass")
 
-    def test_returns_spotify_url(self):
+    def test_returns_google_url(self):
         request = self.factory.get("/")
         request.session = {}
         url = get_auth_url(request)
-        self.assertIn("https://accounts.spotify.com/authorize", url)
+        self.assertIn("https://accounts.google.com/o/oauth2/v2/auth", url)
 
     def test_url_contains_required_params(self):
         request = self.factory.get("/")
@@ -89,11 +89,10 @@ class GetAuthUrlTests(TestCase):
         request = self.factory.get("/")
         request.session = {}
         get_auth_url(request)
-        self.assertIn("spotify_code_verifier", request.session)
+        self.assertIn("google_code_verifier", request.session)
 
 
 class RequestTokenTests(TestCase):
-
     def setUp(self):
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="testuser", password="pass")
@@ -101,10 +100,10 @@ class RequestTokenTests(TestCase):
     def _make_request(self, session_data=None):
         request = self.factory.get("/")
         request.user = self.user
-        request.session = session_data or {"spotify_code_verifier": "test_verifier"}
+        request.session = session_data or {"google_code_verifier": "test_verifier"}
         return request
 
-    @patch("cards.utils.oauth_pkce.requests.post")
+    @patch("cards.utils.google_oauth.requests.post")
     def test_successful_token_exchange(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {
@@ -117,11 +116,11 @@ class RequestTokenTests(TestCase):
         result = request_token(request, "auth_code_123")
 
         self.assertTrue(result)
-        token = SpotifyToken.objects.get(user=self.user)
+        token = GoogleToken.objects.get(user=self.user)
         self.assertEqual(token.access_token, "access_abc")
         self.assertEqual(token.refresh_token, "refresh_xyz")
 
-    @patch("cards.utils.oauth_pkce.requests.post")
+    @patch("cards.utils.google_oauth.requests.post")
     def test_failed_token_exchange(self, mock_post):
         mock_post.return_value.status_code = 400
 
@@ -129,14 +128,14 @@ class RequestTokenTests(TestCase):
         result = request_token(request, "bad_code")
 
         self.assertFalse(result)
-        self.assertFalse(SpotifyToken.objects.filter(user=self.user).exists())
+        self.assertFalse(GoogleToken.objects.filter(user=self.user).exists())
 
     def test_missing_verifier_returns_false(self):
         request = self._make_request(session_data={})  # no verifier
         result = request_token(request, "auth_code_123")
         self.assertFalse(result)
 
-    @patch("cards.utils.oauth_pkce.requests.post")
+    @patch("cards.utils.google_oauth.requests.post")
     def test_verifier_removed_from_session_after_use(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {
@@ -144,21 +143,21 @@ class RequestTokenTests(TestCase):
         }
         request = self._make_request()
         request_token(request, "code")
-        self.assertNotIn("spotify_code_verifier", request.session)
+        self.assertNotIn("google_code_verifier", request.session)
 
 
 class RefreshTokenTests(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(username="testuser", password="pass")
-        self.token = SpotifyToken.objects.create(
+        self.token = GoogleToken.objects.create(
             user=self.user,
             access_token="old_access",
             refresh_token="old_refresh",
             expires_at=timezone.now() - timedelta(hours=1),  # already expired
         )
 
-    @patch("cards.utils.oauth_pkce.requests.post")
+    @patch("cards.utils.google_oauth.requests.post")
     def test_successful_refresh(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {
@@ -172,9 +171,8 @@ class RefreshTokenTests(TestCase):
         self.assertEqual(self.token.access_token, "new_access")
         self.assertEqual(self.token.refresh_token, "old_refresh")  # unchanged
 
-    @patch("cards.utils.oauth_pkce.requests.post")
+    @patch("cards.utils.google_oauth.requests.post")
     def test_refresh_token_rotated(self, mock_post):
-        """Spotify sometimes returns a new refresh token."""
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {
             "access_token": "new_access",
@@ -185,7 +183,7 @@ class RefreshTokenTests(TestCase):
         self.token.refresh_from_db()
         self.assertEqual(self.token.refresh_token, "new_refresh")
 
-    @patch("cards.utils.oauth_pkce.requests.post")
+    @patch("cards.utils.google_oauth.requests.post")
     def test_failed_refresh(self, mock_post):
         mock_post.return_value.status_code = 401
         result = refresh_token(self.token)
@@ -201,7 +199,7 @@ class GetValidTokenTests(TestCase):
         self.assertIsNone(get_valid_token(self.user))
 
     def test_valid_token_returned_directly(self):
-        SpotifyToken.objects.create(
+        GoogleToken.objects.create(
             user=self.user,
             access_token="valid_token",
             refresh_token="refresh",
@@ -209,10 +207,10 @@ class GetValidTokenTests(TestCase):
         )
         self.assertEqual(get_valid_token(self.user), "valid_token")
 
-    @patch("cards.utils.oauth_pkce.refresh_token")
+    @patch("cards.utils.google_oauth.refresh_token")
     def test_expired_token_triggers_refresh(self, mock_refresh):
         mock_refresh.return_value = True
-        token = SpotifyToken.objects.create(
+        token = GoogleToken.objects.create(
             user=self.user,
             access_token="expired_token",
             refresh_token="refresh",
@@ -221,9 +219,9 @@ class GetValidTokenTests(TestCase):
         get_valid_token(self.user)
         mock_refresh.assert_called_once_with(token)
 
-    @patch("cards.utils.oauth_pkce.refresh_token", return_value=False)
+    @patch("cards.utils.google_oauth.refresh_token", return_value=False)
     def test_failed_refresh_returns_none(self, _):
-        SpotifyToken.objects.create(
+        GoogleToken.objects.create(
             user=self.user,
             access_token="expired",
             refresh_token="refresh",
