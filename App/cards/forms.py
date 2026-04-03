@@ -30,6 +30,13 @@ class NewSet(forms.ModelForm):
         "description": forms.Textarea(attrs={"rows": 5})
         }
 
+class AddToSetForm(forms.Form):
+    existing_set = forms.ModelChoiceField(
+        queryset=Set.objects.none(),  # overridden in view
+        required=False,
+        empty_label="-- Add to existing set --"
+    )
+    
 class NewCard(forms.ModelForm):
     class Meta:
         model = Card

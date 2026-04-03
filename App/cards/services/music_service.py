@@ -1,5 +1,5 @@
 from cards.services.lastfm_service import search_track
-from cards.services.youtube_service import build_search_query, get_youtube_client, search_videos
+from cards.services.youtube_service import build_search_query, filter_embeddable, get_youtube_client, search_videos
 from cards.utils.google_oauth import get_valid_token
 
 from django.core.cache import cache

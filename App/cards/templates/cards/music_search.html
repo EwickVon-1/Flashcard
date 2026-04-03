@@ -41,12 +41,24 @@
                     </div>
                 </div>
 
-                <!-- Set name field -->
+                <!-- Set selector -->
                 <div class="mb-2">
-                    <label for="set_name" class="form-label">Set Name</label>
-                    {{ set_form.name }}
-                    <label for="description" class="form-label">Description</label>
-                    {{ set_form.description }}
+                    <select name="existing_set" class="form-control mb-2"
+                            onchange="toggleNewSet(this, '{{ forloop.counter }}')">
+                        <option value="">-- Create new set --</option>
+                        {% for set in user_sets %}
+                            <option value="{{ set.id }}">{{ set.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <!-- New set fields, hidden when existing set selected -->
+                    <div id="new-set-{{ forloop.counter }}">
+                        <input type="text" name="name" class="form-control mb-1"
+                            placeholder="Set name"
+                            value="{{ track.title }} - {{ track.artist }}">
+                        <input type="text" name="description" class="form-control"
+                            placeholder="Description (optional)">
+                    </div>
                 </div>
 
                 <!-- Video options -->
@@ -81,4 +93,10 @@
     {% endfor %}
     {% endif %}
 </div>
+<script>
+function toggleNewSet(select, counter) {
+    const newSetDiv = document.getElementById('new-set-' + counter);
+    newSetDiv.style.display = select.value ? 'none' : 'block';
+}
+</script>
 {% endblock %}

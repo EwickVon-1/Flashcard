@@ -11,14 +11,13 @@
 
 {% if card.video_id %}
     <div id="player-container"></div>
-    <button onclick="
-        document.getElementById('player-container').innerHTML = 
-        '<iframe width=\'560\' height=\'315\' src=\'https://www.youtube.com/embed/{{ card.video_id }}?autoplay=1\' allow=\'autoplay; encrypted-media\'></iframe>';
-        this.style.display='none';
-    ">
-        ▶ Play
-    </button>
+    <iframe width="0" height="0" src="https://www.youtube.com/embed/{{ card.video_id }}?autoplay=1" 
+    title="YouTube video player" 
+    frameborder="0" 
+    allow="autoplay; encrypted-media"
+    referrerpolicy="strict-origin-when-cross-origin" autoplay allowfullscreen></iframe>
 {% endif %}
+    <h5>If there is no audio playing: <a href="https://www.youtube.com/watch?v={{ card.video_id }}" target="_blank">Play on YouTube</a></h5>
 
     <form action="{% url 'study' set_id name %}" method="post">
         {% csrf_token %}
