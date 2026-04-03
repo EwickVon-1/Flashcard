@@ -24,6 +24,9 @@
                     <a class="nav-link active" aria-current="page" href="{% url 'stats' %}">Stats</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="{% url 'music_search' %}"> Search Music </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link active" aria-current="page" href="{% url 'logout' %}"> Log Out</a>
                 </li>
                 {% else %}
@@ -34,11 +37,12 @@
                     <a class="nav-link active" aria-current="page" href="{% url 'register' %}"> Register </a>
                 </li>
             {% endif %}
-            </ul>
+            
             <form class="d-flex" role="search" method="GET" action="{% url 'search' %}">
                 <input class="form-control me-2" type="text" name="q" value="{{ query }}" placeholder="Search" aria-label="Search"/>
                 <button class="btn btn-outline-success" type="submit">Search</button>
             </form>
+            </ul>
         </div>
     </nav> 
     {% for message in messages %}

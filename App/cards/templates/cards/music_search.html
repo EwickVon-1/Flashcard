@@ -1,53 +1,84 @@
 {% extends "cards/layout.html" %}
-
-{% block title %}
-    Playlist Search
-{% endblock %}
-
+{% block title %}Search Music{% endblock %}
 {% block body %}
-    <h1>Search Playlists</h1>
+<div class="container mt-4">
+    <h2>Search for a Song</h2>
     <form method="GET" action="{% url 'music_search' %}">
         {{ form.as_p }}
         <button type="submit" class="btn btn-primary">Search</button>
     </form>
 
-{% if tracks %}
-<form method="POST" action="{% url 'google_create_set' %}">
-    {% csrf_token %}
-    <div class="m-3 d-flex gap-3 align-items-start">
-        <div>
-            {{ set_form.set_name }}
-        </div>
-        <div>
-            {{ set_form.set_description }}
-        </div>
-        <button type="submit" class="btn btn-success">Create Set</button>
-    </div>
+    {% if tracks %}
+    <h4 class="mt-4">Results</h4>
+    {% for track in tracks %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>{{ track.title }} — {{ track.artist }}</h5>
 
-    <div class="container-fluid d-flex flex-wrap">
-        {% for track in tracks %}
-        <div class="card mx-3 mb-3 shadow-sm" style="width: 18rem;">
-            <img src="{{ track.snippet.thumbnails.high.url }}" class="card-img-top" alt="Album Art">
-            <div class="card-body">
-                <h5 class="card-title">{{ track.snippet.title }}</h5>
-                <p class="card-text">{{ track.snippet.channelTitle }}</p>
-                {% if track.preview_url %}
-                    <audio controls src="{{ track.preview_url }}" class="w-100 mb-2"></audio>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox"
-                               name="track_ids" value="{{ track.id }}"
-                               id="track_{{ track.id }}">
-                        <label class="form-check-label" for="track_{{ track.id }}">
-                            Add to Set
-                        </label>
+            {% if track.videos %}
+            <form method="POST" action="{% url 'create_set' %}">
+                {% csrf_token %}
+                <input type="hidden" name="artist" value="{{ track.artist }}">
+                <input type="hidden" name="title" value="{{ track.title }}">
+
+                <!-- Card type selection -->
+                <div class="mb-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="card_types" value="song" checked>
+                        <label class="form-check-label">Song name</label>
                     </div>
-                {% else %}
-                    <p class="text-muted">No preview available</p>
-                {% endif %}
-            </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="card_types" value="artist" checked>
+                        <label class="form-check-label">Artist</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="card_types" value="album">
+                        <label class="form-check-label">Album</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="card_types" value="genre">
+                        <label class="form-check-label">Genre</label>
+                    </div>
+                </div>
+
+                <!-- Set name field -->
+                <div class="mb-2">
+                    <label for="set_name" class="form-label">Set Name</label>
+                    {{ set_form.name }}
+                    <label for="description" class="form-label">Description</label>
+                    {{ set_form.description }}
+                </div>
+
+                <!-- Video options -->
+                <div class="row">
+                    {% for video in track.videos %}
+                    <div class="col-md-4">
+                        <div class="card">
+                            <img src="{{ video.thumbnail }}" class="card-img-top">
+                            <div class="card-body p-2">
+                                <p class="small mb-1">{{ video.title }}</p>
+                                <p class="small text-muted mb-1">{{ video.channel }}</p>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio"
+                                           name="video_id"
+                                           value="{{ video.video_id }}"
+                                           {% if forloop.first %}checked{% endif %}>
+                                    <label class="form-check-label">Select</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <button type="submit" class="btn btn-success mt-2">Create Set</button>
+            </form>
+            {% else %}
+                <p class="text-muted">No videos found for this track.</p>
+            {% endif %}
         </div>
-        {% endfor %}
     </div>
-</form>
-{% endif %}
+    {% endfor %}
+    {% endif %}
+</div>
 {% endblock %}
