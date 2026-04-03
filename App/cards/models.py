@@ -32,7 +32,6 @@ class Card(models.Model):
     set = models.ForeignKey(Set, on_delete=models.CASCADE, related_name="in_set", null=True, blank=True)
     question = models.TextField()
     answer = models.TextField()
-    preview_url = models.URLField(null=True, blank=True)
     album_art_url = models.URLField(null=True, blank=True)
     video_id = models.CharField(max_length=100, null=True, blank=True)
 

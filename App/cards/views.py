@@ -5,17 +5,17 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 
+from cards.services.music_service import search_tracks_with_videos
 from cards.services.auth_service import register_user
 from cards.services.set_service import toggle_save_set
 from cards.services.stats_service import get_study_stats
 from cards.services.study_service import create_query, get_next_card, process_grade, increment_query, destroy_query
-from cards.services.youtube_service import get_youtube_client, search_videos, build_search_query
-from cards.services.lastfm_services import search_track, get_track_info, build_flashcard_data
+from cards.services.lastfm_service import search_track, get_track_info, build_flashcard_data
 from cards.utils.form_handler import handle_form
 from cards.utils.permissions import authenticate_user_permission
-from cards.utils.google_oauth import get_auth_url, request_token, get_valid_token
+from cards.utils.google_oauth import get_auth_url, request_token
 
-from .forms import SearchForm, YoutubeSet, registerForm, loginForm, Gradeform, NewCard, NewSet
+from .forms import SearchForm, registerForm, loginForm, Gradeform, NewCard, NewSet
 from .models import Card, Set, GoogleToken, User, StudyData
 # Create your views here.
 
@@ -155,9 +155,7 @@ def add(request, set_id, name):
     flashcard_set = get_object_or_404(Set, id=set_id)
 
     # Checks if the user is actually the owner
-    error = authenticate_user_permission(request, flashcard_set, "set_view", set_id, name)
-    if error:
-        return error
+    authenticate_user_permission(request, flashcard_set)
 
     # If the user submits the form, save it
     form, is_valid = handle_form(request, NewCard)
@@ -182,7 +180,7 @@ def delete_card(request, set_id, name, card_id):
     flashcard_set = get_object_or_404(Set, id=set_id)
 
     # Checks if the user is the owner
-    authenticate_user_permission(request, flashcard_set, "set_view", set_id, name)
+    authenticate_user_permission(request, flashcard_set)
 
     # If the user submits the form, delete the card
     card = get_object_or_404(Card, set_id=set_id, id=card_id)
@@ -228,7 +226,7 @@ def edit_card(request, set_id, name, card_id):
 def edit_view(request, set_id, name):
     flashcard_set = get_object_or_404(Set, id=set_id)
     # Check if the user is actually the owner
-    authenticate_user_permission(request, flashcard_set, "set_view", set_id, name)
+    authenticate_user_permission(request, flashcard_set)
     
     card = Card.objects.filter(set_id=set_id)
         
@@ -309,6 +307,7 @@ def study(request, set_id, name):
         messages.success(request, "You have finished studying this Flashcard Set for now. Great job!")
         return redirect("set_view", set_id=set_id, name=name)
     
+    
     return render(request, "cards/study.html", {
             "name": name,
             "set_id": set_id,
@@ -320,19 +319,15 @@ def study(request, set_id, name):
 
 @login_required
 def music_search(request):
-    # query = request.GET.get("q", "")
-    # tracks = search_track(query) if query else []
-
     search_form, is_valid = handle_form(request, SearchForm, method="GET")
     tracks = []
 
     if is_valid:
         query = search_form.cleaned_data["query"]
-        tracks = search_track(query) if query else []
-                
+        tracks = search_tracks_with_videos(request, query) if query else []
     return render(request, "cards/music_search.html", {
         "form": search_form,
-        "set_form": YoutubeSet(),
+        "set_form": NewSet(),
         "tracks": tracks
     })
 
@@ -358,14 +353,15 @@ def create_set(request):
 
         if not video_id:
             messages.error(request, "You must select a YouTube video.")
-        else:
-            flashcard_set = form.save(commit=False)
-            flashcard_set.owner = request.user
-            flashcard_set.save()
+            return redirect("create_set")
+        
+        flashcard_set = form.save(commit=False)
+        flashcard_set.owner = request.user
+        flashcard_set.save()
 
-            flashcard_data = build_flashcard_data(track_info, video_id, card_types)
-            for data in flashcard_data:
-                Card.objects.create(
+        flashcard_data = build_flashcard_data(track_info, video_id, card_types)
+        for data in flashcard_data:
+            Card.objects.create(
                     set=flashcard_set,
                     question=data["question"],
                     answer=data["answer"],
@@ -373,24 +369,8 @@ def create_set(request):
                     album_art_url=track_info["album_art"]
                 )
             messages.success(request, f"Created '{flashcard_set.name}' with {len(flashcard_data)} cards!")
-            return redirect("set_view", set_id=flashcard_set.id, name=flashcard_set.name)
-        
-    token = get_valid_token(request.user)
-    if not token:
-        messages.error(request, "You must connect your Google account to create a set from a song.")
-        return redirect("music_search")
-    
-    yt = get_youtube_client(token.access_token)
-    query = build_search_query(track_info)
-    videos = search_videos(yt, query)
-    
-    return render(request, "cards/create_set.html", { 
-        "form": form,
-        "track_info": track_info,
-        "videos": videos,
-        "artist": artist,
-        "title": title,
-    })
+        return redirect("set_view", set_id=flashcard_set.id, name=flashcard_set.name)
+    return redirect("music_search")
 
     
     

@@ -1,6 +1,8 @@
 from google.oauth2.credentials import Credentials
 import googleapiclient.discovery
 
+from django.core.cache import cache
+
 def get_youtube_client(access_token):
     credentials = Credentials(token=access_token)
     return googleapiclient.discovery.build(
@@ -10,10 +12,11 @@ def get_youtube_client(access_token):
 def build_search_query(track_info):
     return f"{track_info['artist']} {track_info['title']} official"
 
-def search_videos(yt, query, limit=5):
+def search_videos(yt, query, limit=2):
     results = yt.search().list(q=query, 
                                part="snippet",
                                type="video",
+                                videoEmbeddable="true",
                                videoCategoryId="10",  # Music category
                                maxResults=limit).execute()
     return [{

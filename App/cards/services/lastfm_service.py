@@ -3,7 +3,7 @@ from django.conf import settings
 
 BASE_URL = "http://ws.audioscrobbler.com/2.0/"
 
-def search(query, method="track.search", limit=30):
+def search_track(query, method="track.search", limit=30):
     params = {
         "method": method,
         "api_key": settings.LASTFM_API_KEY,
