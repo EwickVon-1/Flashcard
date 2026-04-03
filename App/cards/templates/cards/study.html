@@ -9,6 +9,17 @@
         </div>
     </div>
 
+{% if card.video_id %}
+    <div id="player-container"></div>
+    <button onclick="
+        document.getElementById('player-container').innerHTML = 
+        '<iframe width=\'560\' height=\'315\' src=\'https://www.youtube.com/embed/{{ card.video_id }}?autoplay=1\' allow=\'autoplay; encrypted-media\'></iframe>';
+        this.style.display='none';
+    ">
+        ▶ Play
+    </button>
+{% endif %}
+
     <form action="{% url 'study' set_id name %}" method="post">
         {% csrf_token %}
         {{ grade }}

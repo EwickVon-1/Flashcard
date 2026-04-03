@@ -17,10 +17,12 @@ from os import getenv
 # Load environment variables from .env file
 load_dotenv()
 
-SPOTIFY_CLIENT_ID = getenv("SPOTIFY_CLIENT_ID")
-SPOTIFY_CLIENT_SECRET = getenv("SPOTIFY_CLIENT_SECRET")
-SPOTIFY_SCOPES = "playlist-read-private playlist-read-collaborative"
-SPOTIFY_REDIRECT_URL = "http://127.0.0.1:8000/spotify/callback"
+GOOGLE_CLIENT_ID = getenv('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = getenv('GOOGLE_CLIENT_SECRET')
+GOOGLE_REDIRECT_URI = getenv('GOOGLE_REDIRECT_URI')
+GOOGLE_SCOPE = getenv('GOOGLE_SCOPE')
+
+LASTFM_API_KEY = getenv('LASTFM_API_KEY')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
