@@ -29,26 +29,6 @@ class NewSet(forms.ModelForm):
         widgets = {
         "description": forms.Textarea(attrs={"rows": 5})
         }
-    
-class SpotifySet(forms.Form):
-    set_name = forms.CharField(
-        label="Set Name",
-        max_length=50,
-        widget=forms.TextInput(attrs={
-            "placeholder": "Set Name",
-            "class": "form-control"
-        })
-    )
-    set_description = forms.CharField(
-        label="Description",
-        required=False,
-        max_length=300,
-        widget=forms.Textarea(attrs={
-            "placeholder": "Description",
-            "class": "form-control",
-            "rows": 3
-        })
-    )
 
 class NewCard(forms.ModelForm):
     class Meta:
