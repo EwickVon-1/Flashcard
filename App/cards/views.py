@@ -15,7 +15,7 @@ from cards.utils.form_handler import handle_form
 from cards.utils.permissions import authenticate_user_permission
 from cards.utils.google_oauth import get_auth_url, request_token
 
-from .forms import SearchForm, registerForm, loginForm, Gradeform, NewCard, NewSet
+from .forms import SearchForm, registerForm, loginForm, Gradeform, NewCard, NewSet, AddToSetForm
 from .models import Card, Set, GoogleToken, User, StudyData
 # Create your views here.
 
@@ -325,9 +325,13 @@ def music_search(request):
     if is_valid:
         query = search_form.cleaned_data["query"]
         tracks = search_tracks_with_videos(request, query) if query else []
+        if tracks is None:
+            messages.error(request, "Error searching for tracks. Please try again.")
+            tracks = []
+            return redirect("google_auth")
     return render(request, "cards/music_search.html", {
         "form": search_form,
-        "set_form": NewSet(),
+        "user_sets": Set.objects.filter(owner=request.user),
         "tracks": tracks
     })
 
@@ -345,32 +349,39 @@ def create_set(request):
         messages.error(request, "Could not find track information. Please try again.")
         return redirect("music_search")
     
-    form, is_valid = handle_form(request, NewSet)
+    if request.method != "POST":
+        return redirect("music_search")
+    
+    video_id = request.POST.get("video_id")
+    card_types = request.POST.getlist("card_types") or None
+    existing_set_id = request.POST.get("existing_set")
 
-    if is_valid:
-        video_id = request.POST.get("video_id")
-        card_types = request.POST.getlist("card_types") or None
-
-        if not video_id:
-            messages.error(request, "You must select a YouTube video.")
-            return redirect("create_set")
-        
+    if not video_id:
+        messages.error(request, "You must select a YouTube video.")
+        return redirect("create_set")
+    
+    if existing_set_id:
+        flashcard_set = get_object_or_404(Set, id=existing_set_id, owner=request.user)
+    else:
+        form, is_valid = handle_form(request, NewSet)
+        if not is_valid:
+            messages.error(request, "Invalid set name.")
+            return redirect("music_search")
         flashcard_set = form.save(commit=False)
         flashcard_set.owner = request.user
         flashcard_set.save()
 
-        flashcard_data = build_flashcard_data(track_info, video_id, card_types)
-        for data in flashcard_data:
-            Card.objects.create(
-                    set=flashcard_set,
-                    question=data["question"],
-                    answer=data["answer"],
-                    video_id=video_id,
-                    album_art_url=track_info["album_art"]
-                )
-            messages.success(request, f"Created '{flashcard_set.name}' with {len(flashcard_data)} cards!")
-        return redirect("set_view", set_id=flashcard_set.id, name=flashcard_set.name)
-    return redirect("music_search")
 
-    
+    flashcard_data = build_flashcard_data(track_info, video_id, card_types)
+    for data in flashcard_data:
+        Card.objects.create(
+                set=flashcard_set,
+                question=data["question"],
+                answer=data["answer"],
+                video_id=video_id,
+                album_art_url=track_info["album_art"]
+            )
+        messages.success(request, f"Created '{flashcard_set.name}' with {len(flashcard_data)} cards!")
+    return redirect("set_view", set_id=flashcard_set.id, name=flashcard_set.name)
+
     
