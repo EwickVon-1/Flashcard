@@ -19,7 +19,6 @@ User = get_user_model()
 
 
 class CodeVerifierTests(TestCase):
-
     def test_default_length(self):
         verifier = generate_code_verifier()
         self.assertEqual(len(verifier), 128)
@@ -38,6 +37,7 @@ class CodeVerifierTests(TestCase):
 
     def test_allowed_characters(self):
         import string
+
         allowed = set(string.ascii_letters + string.digits + "-._~")
         verifier = generate_code_verifier()
         self.assertTrue(set(verifier).issubset(allowed))
@@ -48,7 +48,6 @@ class CodeVerifierTests(TestCase):
 
 
 class CodeChallengeTests(TestCase):
-
     def test_challenge_matches_spec(self):
         """Manually compute the expected challenge and compare."""
         verifier = "test_verifier_string"
@@ -65,8 +64,8 @@ class CodeChallengeTests(TestCase):
         self.assertNotIn("+", challenge)
         self.assertNotIn("/", challenge)
 
-class GetAuthUrlTests(TestCase):
 
+class GetAuthUrlTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="testuser", password="pass")
@@ -81,8 +80,12 @@ class GetAuthUrlTests(TestCase):
         request = self.factory.get("/")
         request.session = {}
         url = get_auth_url(request)
-        for param in ["code_challenge", "code_challenge_method=S256",
-                      "response_type=code", "client_id"]:
+        for param in [
+            "code_challenge",
+            "code_challenge_method=S256",
+            "response_type=code",
+            "client_id",
+        ]:
             self.assertIn(param, url)
 
     def test_verifier_stored_in_session(self):
@@ -139,7 +142,9 @@ class RequestTokenTests(TestCase):
     def test_verifier_removed_from_session_after_use(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {
-            "access_token": "a", "refresh_token": "r", "expires_in": 3600
+            "access_token": "a",
+            "refresh_token": "r",
+            "expires_in": 3600,
         }
         request = self._make_request()
         request_token(request, "code")

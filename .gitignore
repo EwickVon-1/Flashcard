@@ -2,8 +2,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Setup Files
+
 # Virtual environment
 venv/
+.venv/
 .env
 
 db.sqlite3

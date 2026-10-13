@@ -1,11 +1,19 @@
+from enum import Enum
+
+
+class state(Enum):
+    INVALID = 0
+    UNSAVED = 1
+    SAVED = 2
+
 
 def toggle_save_set(user, flashcard_set):
     if user == flashcard_set.owner:
-        return False, "You cannot save your own flashcard set."
-    
-    if flashcard_set in user.saved_sets.all():
+        return state.INVALID
+
+    if saved_sets.filter(pk=flashcard_set.pk).exists():
         user.saved_sets.remove(flashcard_set)
-        return False, f"Unsaved '{flashcard_set.name}' to your saved sets."
+        return state.UNSAVED
     else:
         user.saved_sets.add(flashcard_set)
-        return True, f"Saved '{flashcard_set.name}' to your saved sets."
+        return state.SAVED
