@@ -13,7 +13,7 @@ class registerForm(UserCreationForm):
     email = forms.EmailField(required=True)
 
     class Meta:
-        model = get_user_model
+        model = get_user_model()
         fields = ["username", "email", "password1", "password2"]
 
 

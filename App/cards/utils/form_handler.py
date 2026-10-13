@@ -1,7 +1,7 @@
 from django import forms
 
 
-def handle_form(request, form_class, instance="None"):
+def handle_form(request, form_class, instance=None):
     kwargs = {}
     if issubclass(form_class, forms.ModelForm) and instance is not None:
         kwargs["instance"] = instance

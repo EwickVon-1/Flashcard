@@ -22,8 +22,6 @@ GOOGLE_CLIENT_SECRET = getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = getenv("GOOGLE_REDIRECT_URI")
 GOOGLE_SCOPE = getenv("GOOGLE_SCOPE")
 
-print("Hello")
-print(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI)
 
 LASTFM_API_KEY = getenv("LASTFM_API_KEY")
 
@@ -38,9 +36,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = getenv("DEBUG")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = getenv("ALLOWED_HOSTS", "").split(",")
 
 
 # Application definition

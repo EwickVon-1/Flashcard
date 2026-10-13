@@ -2,11 +2,11 @@ import json
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, require_POST
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.http import require_POST
 
 from cards.services.music_service import search_tracks_with_videos
-from cards.services.auth_service import register_user
 from cards.services.set_service import toggle_save_set
 from cards.services.stats_service import get_study_stats
 from cards.services.study_service import (
@@ -17,7 +17,6 @@ from cards.services.study_service import (
     destroy_query,
 )
 from cards.services.lastfm_service import (
-    search_track,
     get_track_info,
     build_flashcard_data,
 )
@@ -32,11 +31,8 @@ from .forms import (
     Gradeform,
     NewCard,
     NewSet,
-    AddToSetForm,
 )
-from .models import Card, Set, GoogleToken, User, StudyData
-
-# Create your views here.
+from .models import Card, Set, GoogleToken, StudyData
 
 QUEUE_PREFIX = "queue"
 
@@ -45,16 +41,8 @@ def register(request):
     form, is_valid = handle_form(request, registerForm)
     message = "Invalid registration details."
     if is_valid:
-        # Save the information from the form
-        username = form.cleaned_data["username"]
-        email = form.cleaned_data["email"]
-        password = form.cleaned_data["password"]
-
-        # Attempt to create a new User
-        user, error = register_user(username, email, password)
-        if error:
-            message = error
-            return render(request, "cards/register.html", {"message": message})
+        # Since registerForm is of class UserCreationForm, we let it register the user
+        user = form.save()
         login(request, user)
         return redirect("index")
 
@@ -96,11 +84,12 @@ def google_callback(request):
         return redirect("index")
 
     code = request.GET.get("code")
+    state = request.GET.get("state")
     if not code:
         messages.error(request, "Google authentication failed: No code provided.")
         return redirect("index")
 
-    if not request_token(request, code):
+    if not request_token(request, code, state):
         messages.error(request, "Google authentication failed: Unable to obtain token.")
         return redirect("index")
     return redirect("index")
@@ -311,8 +300,8 @@ def stats(request, set_id=None, name=None):
 def study(request, set_id, name):
 
     # Get the next card to study for the user. There are three cases:
-    # 1. If there are cards that are due for review, return the card with the earliest due date
-    # 2. If there are no cards that are due for review, but there are still cards that haven't been studied, return one of those cards
+    # 1. If there are cards that are due for review, return earlist card
+    # 2. If there are no cards that are due for review, return cards not studied yet
     # 3. If there are no cards left to study, redirect to the set view
     queue_key = create_query(request, QUEUE_PREFIX, set_id)
 
