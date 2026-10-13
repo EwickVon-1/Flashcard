@@ -36,10 +36,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = getenv("DEBUG")
+DEBUG = getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = getenv("ALLOWED_HOSTS", "").split(",")
-
+ALLOWED_HOSTS = [
+    host.strip() for host in getenv("ALLOWED_HOSTS", "").split(",") if host.strip()
+]
 
 # Application definition
 

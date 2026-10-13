@@ -66,6 +66,7 @@ def login_view(request):
     return render(request, "cards/login.html", {"form": form, "message": message})
 
 
+@require_POST
 def logout_view(request):
     logout(request)
     return redirect("index")
@@ -254,11 +255,13 @@ def save_set(request, set_id, name):
             messages.error(request, "You cannot save a set you own.")
             return redirect("set_view", set_id=set_id, name=name)
         case 1:
-            messages.sucess(
+            messages.success(
                 request, f"Unsaved '{flashcard_set.name}' from your saved sets"
             )
         case 2:
-            messages.sucess(request, f"Saved '{flashcard_set.name}' to your saved sets")
+            messages.success(
+                request, f"Saved '{flashcard_set.name}' to your saved sets"
+            )
 
     return redirect("set_view", set_id=set_id, name=name)
 
@@ -409,7 +412,8 @@ def create_set(request):
             video_id=video_id,
             album_art_url=track_info["album_art"],
         )
-        messages.success(
-            request, f"Created '{flashcard_set.name}' with {len(flashcard_data)} cards!"
-        )
+
+    messages.success(
+        request, f"Created '{flashcard_set.name}' with {len(flashcard_data)} cards!"
+    )
     return redirect("set_view", set_id=flashcard_set.id, name=flashcard_set.name)

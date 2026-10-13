@@ -52,7 +52,7 @@ def get_auth_url(request) -> str:
 
 
 def request_token(request, code: str, returned_state: str) -> bool:
-    state = request.session.pop("google_oauth_state")
+    state = request.session.pop("google_oauth_state", None)
     if (
         not returned_state
         or not state

@@ -99,11 +99,19 @@ class RequestTokenTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="testuser", password="pass")
+        self.state = "test_state"
 
     def _make_request(self, session_data=None):
         request = self.factory.get("/")
         request.user = self.user
-        request.session = session_data or {"google_code_verifier": "test_verifier"}
+        request.session = (
+            session_data
+            if session_data is not None
+            else {
+                "google_code_verifier": "test_verifier",
+                "google_oauth_state": self.state,
+            }
+        )
         return request
 
     @patch("cards.utils.google_oauth.requests.post")
@@ -116,7 +124,7 @@ class RequestTokenTests(TestCase):
         }
 
         request = self._make_request()
-        result = request_token(request, "auth_code_123")
+        result = request_token(request, "auth_code_123", self.state)
 
         self.assertTrue(result)
         token = GoogleToken.objects.get(user=self.user)
@@ -128,14 +136,14 @@ class RequestTokenTests(TestCase):
         mock_post.return_value.status_code = 400
 
         request = self._make_request()
-        result = request_token(request, "bad_code")
+        result = request_token(request, "bad_code", self.state)
 
         self.assertFalse(result)
         self.assertFalse(GoogleToken.objects.filter(user=self.user).exists())
 
     def test_missing_verifier_returns_false(self):
         request = self._make_request(session_data={})  # no verifier
-        result = request_token(request, "auth_code_123")
+        result = request_token(request, "auth_code_123", self.state)
         self.assertFalse(result)
 
     @patch("cards.utils.google_oauth.requests.post")
@@ -147,7 +155,7 @@ class RequestTokenTests(TestCase):
             "expires_in": 3600,
         }
         request = self._make_request()
-        request_token(request, "code")
+        request_token(request, "code", self.state)
         self.assertNotIn("google_code_verifier", request.session)
 
 
