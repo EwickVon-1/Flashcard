@@ -3,8 +3,9 @@
 {% block body %}
 <div class="container mt-4">
     <h2>Search for a Song</h2>
-    <form method="GET" action="{% url 'music_search' %}">
-        {{ form.as_p }}
+    <form method="POST" action="{% url 'music_search' %}">
+        {% csrf_token %}
+        {{ form }}
         <button type="submit" class="btn btn-primary">Search</button>
     </form>
 

@@ -27,7 +27,7 @@
                 {% endif %}
             </div>
         </div>
-        <form method="POST" action="{% url 'create_set' %}?artist={{ artist|urlencode }}&title={{ title|urlencode }}">
+        <form method="post" action="{% url 'create_set' %}?artist={{ artist|urlencode }}&title={{ title|urlencode }}">
             {% csrf_token %}
 
             <input type="hidden" name="artist" value="{{ artist }}">

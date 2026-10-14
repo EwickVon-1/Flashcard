@@ -14,7 +14,7 @@
             <ul>
                 {% for set in results %}
                     <li>
-                        <a href="{% url 'set_view' set.id set.name %}">{{ set.name }}</a>
+                        <a href="{% url 'set_view' set.id %}">{{ set.name }}</a>
                         by {{ set.owner.username }}
                     </li>
                 {% endfor %}

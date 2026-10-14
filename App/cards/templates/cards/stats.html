@@ -1,7 +1,7 @@
 {% extends "cards/layout.html" %}
 
 {% block title %}
-    {{ name }}'s Study Stats
+    {{ username }}'s Study Stats
 {% endblock %}
 
 {% block body %}
@@ -10,13 +10,13 @@
     {% if name %}
         <h5>Stats for {{ name }}</h5>
     {% endif %}
-    
+
     <h4>Upcoming Cards</h4>
     <canvas id="upcomingCardsChart"></canvas>
-    
+
     <h4>Reviewed Cards</h4>
     <canvas id="reviewedCardsChart"></canvas>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         const upcomingCards = {{ upcoming_cards_data|safe }};

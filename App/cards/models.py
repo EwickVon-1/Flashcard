@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 # Create your models here.
 class User(AbstractUser):
-    pass
+    email = models.EmailField(unique=True)
 
 
 class GoogleToken(models.Model):

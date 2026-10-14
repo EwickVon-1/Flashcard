@@ -6,7 +6,7 @@
     <title>{% block title %} {% endblock %}</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
         integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-    
+
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -27,7 +27,10 @@
                     <a class="nav-link active" aria-current="page" href="{% url 'music_search' %}"> Search Music </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="{% url 'logout' %}"> Log Out</a>
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link active" aria-current="page"> Log Out </button>
+                    </form>
                 </li>
                 {% else %}
                 <li class="nav-item">
@@ -37,14 +40,14 @@
                     <a class="nav-link active" aria-current="page" href="{% url 'register' %}"> Register </a>
                 </li>
             {% endif %}
-            
+
             <form class="d-flex" role="search" method="GET" action="{% url 'search' %}">
                 <input class="form-control me-2" type="text" name="q" value="{{ query }}" placeholder="Search" aria-label="Search"/>
                 <button class="btn btn-outline-success" type="submit">Search</button>
             </form>
             </ul>
         </div>
-    </nav> 
+    </nav>
     {% for message in messages %}
         <div class="alert alert-{{ message.tags }}">{{ message }}</div>
     {% endfor %}

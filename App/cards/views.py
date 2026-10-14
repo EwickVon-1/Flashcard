@@ -4,9 +4,14 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from cards.services.music_service import search_tracks_with_videos
+from cards.services.music_service import (
+    search_tracks_with_videos,
+    is_valid_video,
+    is_video_embeddable,
+)
 from cards.services.set_service import toggle_save_set
 from cards.services.stats_service import get_study_stats
 from cards.services.study_service import (
@@ -26,8 +31,8 @@ from cards.utils.google_oauth import get_auth_url, request_token
 
 from .forms import (
     SearchForm,
-    registerForm,
-    loginForm,
+    RegisterForm,
+    LoginForm,
     Gradeform,
     NewCard,
     NewSet,
@@ -38,19 +43,22 @@ QUEUE_PREFIX = "queue"
 
 
 def register(request):
-    form, is_valid = handle_form(request, registerForm)
-    message = "Invalid registration details."
+    form, is_valid = handle_form(request, RegisterForm)
+    message = ""
     if is_valid:
         # Since registerForm is of class UserCreationForm, we let it register the user
         user = form.save()
         login(request, user)
         return redirect("index")
 
+    if request.method == "POST":
+        message = "Invalid Registration Details"
+
     return render(request, "cards/register.html", {"form": form, "message": message})
 
 
 def login_view(request):
-    form, is_valid = handle_form(request, loginForm)
+    form, is_valid = handle_form(request, LoginForm)
     message = ""
     if is_valid:
         username = form.cleaned_data["username"]
@@ -59,11 +67,28 @@ def login_view(request):
 
         if user:
             login(request, user)
+
+            next_url = request.POST.get("next") or request.GET.get("next")
+
+            if next_url and url_has_allowed_host_and_scheme(
+                url=next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                return redirect(next_url)
             return redirect("index")
 
         message = "Invalid username and/or password."
 
-    return render(request, "cards/login.html", {"form": form, "message": message})
+    return render(
+        request,
+        "cards/login.html",
+        {
+            "form": form,
+            "message": message,
+            "next": request.POST.get("next") or request.GET.get("next", ""),
+        },
+    )
 
 
 @require_POST
@@ -97,6 +122,7 @@ def google_callback(request):
 
 
 @login_required
+@require_POST
 def google_disconnect(request):
     try:
         request.user.google_token.delete()
@@ -129,13 +155,13 @@ def search(request):
 
 
 # Look at a Flashcard Set
-def set_view(request, set_id, name):
+def set_view(request, set_id):
     flashcard_set = get_object_or_404(Set, id=set_id)
     cards = Card.objects.filter(set=flashcard_set)
     return render(
         request,
         "cards/set.html",
-        {"name": name, "content": flashcard_set, "cards": cards},
+        {"content": flashcard_set, "cards": cards},
     )
 
 
@@ -158,7 +184,7 @@ def create(request):
 
 # Add new cards to a flashcard set
 @login_required
-def add(request, set_id, name):
+def add(request, set_id):
     flashcard_set = get_object_or_404(Set, id=set_id)
 
     # Checks if the user is actually the owner
@@ -172,16 +198,16 @@ def add(request, set_id, name):
         card = form.save(commit=False)
         card.set = flashcard_set
         card.save()
-        return redirect("set_view", set_id=set_id, name=name)
+        return redirect("set_view", set_id=set_id)
 
     form = NewCard()
 
-    return render(request, "cards/add.html", {"id": set_id, "name": name, "form": form})
+    return render(request, "cards/add.html", {"id": set_id, "form": form})
 
 
 @login_required
 @require_POST
-def delete_card(request, set_id, name, card_id):
+def delete_card(request, set_id, card_id):
     flashcard_set = get_object_or_404(Set, id=set_id)
 
     # Checks if the user is the owner
@@ -191,12 +217,12 @@ def delete_card(request, set_id, name, card_id):
     card = get_object_or_404(Card, set_id=set_id, id=card_id)
     card.delete()
     messages.success(request, f"Deleted Card '{card.question}'")
-    return redirect("edit", set_id=set_id, name=name)
+    return redirect("edit", set_id=set_id)
 
 
 @login_required
 @require_POST
-def delete_set(request, set_id, name):
+def delete_set(request, set_id):
     flashcard_set = get_object_or_404(Set, id=set_id)
 
     # Checks if the user is the owner
@@ -209,7 +235,7 @@ def delete_set(request, set_id, name):
 
 
 @login_required
-def edit_card(request, set_id, name, card_id):
+def edit_card(request, set_id, card_id):
     flashcard_set = get_object_or_404(Set, id=set_id)
     # Check if the user is actually the owner
     authenticate_user_permission(request, flashcard_set)
@@ -219,19 +245,19 @@ def edit_card(request, set_id, name, card_id):
     form, is_valid = handle_form(request, NewCard, instance=card)
     if is_valid:
         form.save()
-        return redirect("edit", set_id=set_id, name=name)
+        return redirect("edit", set_id=set_id)
 
     form = NewCard(instance=card)
 
     return render(
         request,
         "cards/edit_card.html",
-        {"set_id": set_id, "card_id": card_id, "form": form, "name": name},
+        {"set_id": set_id, "card_id": card_id, "form": form},
     )
 
 
 @login_required
-def edit_view(request, set_id, name):
+def edit_view(request, set_id):
     flashcard_set = get_object_or_404(Set, id=set_id)
     # Check if the user is actually the owner
     authenticate_user_permission(request, flashcard_set)
@@ -239,13 +265,15 @@ def edit_view(request, set_id, name):
     card = Card.objects.filter(set_id=set_id)
 
     return render(
-        request, "cards/edit.html", {"set_id": set_id, "cards": card, "set_name": name}
+        request,
+        "cards/edit.html",
+        {"set_id": set_id, "cards": card, "set_name": flashcard_set.name},
     )
 
 
 @login_required
 @require_POST
-def save_set(request, set_id, name):
+def save_set(request, set_id):
     flashcard_set = get_object_or_404(Set, id=set_id)
 
     success = toggle_save_set(request.user, flashcard_set)
@@ -253,7 +281,7 @@ def save_set(request, set_id, name):
     match success:
         case 0:
             messages.error(request, "You cannot save a set you own.")
-            return redirect("set_view", set_id=set_id, name=name)
+            return redirect("set_view", set_id=set_id)
         case 1:
             messages.success(
                 request, f"Unsaved '{flashcard_set.name}' from your saved sets"
@@ -263,15 +291,18 @@ def save_set(request, set_id, name):
                 request, f"Saved '{flashcard_set.name}' to your saved sets"
             )
 
-    return redirect("set_view", set_id=set_id, name=name)
+    return redirect("set_view", set_id=set_id)
 
 
 @login_required
-def stats(request, set_id=None, name=None):
+def stats(request, set_id=None):
     base_filter = StudyData.objects.filter(user=request.user)
+    name = None
 
     if set_id:
         base_filter = base_filter.filter(card__set_id=set_id)
+        flashcard_set = get_object_or_404(Set, id=set_id)
+        name = flashcard_set.name
 
     upcoming_cards, reviewed_cards = get_study_stats(request.user, base_filter, set_id)
 
@@ -300,7 +331,7 @@ def stats(request, set_id=None, name=None):
 
 
 @login_required
-def study(request, set_id, name):
+def study(request, set_id):
 
     # Get the next card to study for the user. There are three cases:
     # 1. If there are cards that are due for review, return earlist card
@@ -308,37 +339,36 @@ def study(request, set_id, name):
     # 3. If there are no cards left to study, redirect to the set view
     queue_key = create_query(request, QUEUE_PREFIX, set_id)
 
-    form, is_valid = handle_form(request, Gradeform)
+    card_to_study = get_next_card(request.user, set_id)
+    if not card_to_study:
+        destroy_query(request, queue_key)
+        messages.success(
+            request, "You have finished studying this Flashcard Set for now. Great job!"
+        )
+        return redirect("set_view", set_id=set_id)
+
+    form, is_valid = handle_form(
+        request, Gradeform, initial={"card_id": card_to_study.id}
+    )
 
     if is_valid:
-        card_id = int(request.POST.get("card_id"))
+        card_id = form.cleaned_data["card_id"]
         grade = int(form.cleaned_data["grade"])
 
         if grade != 0:
             increment_query(request, queue_key)
 
         process_grade(request.user, card_id, set_id, grade)
-        return redirect("study", set_id=set_id, name=name)
-
-    card_to_study = get_next_card(request.user, set_id)
-
-    if not card_to_study:
-        destroy_query(request, queue_key)
-        messages.success(
-            request, "You have finished studying this Flashcard Set for now. Great job!"
-        )
-        return redirect("set_view", set_id=set_id, name=name)
+        return redirect("study", set_id=set_id)
 
     return render(
         request,
         "cards/study.html",
         {
-            "name": name,
             "set_id": set_id,
-            "card_id": card_to_study.id,
             "card": card_to_study,
             "cards_reviewed": request.session.get(queue_key, 0),
-            "grade": Gradeform(),
+            "grade": form,
         },
     )
 
@@ -369,6 +399,10 @@ def music_search(request):
 
 @login_required
 def create_set(request):
+    # Only create a set from form submission
+    if request.method != "POST":
+        return redirect("music_search")
+
     artist = request.GET.get("artist") or request.POST.get("artist")
     title = request.GET.get("title") or request.POST.get("title")
 
@@ -376,21 +410,32 @@ def create_set(request):
         messages.error(request, "Missing artist or title parameters.")
         return redirect("music_search")
 
+    # Validate video ID's format before API call
+    video_id = request.POST.get("video_id", "").strip()
+    if not is_valid_video(video_id):
+        messages.error(request, "Invalid YouTube video ID.")
+        return redirect("music_search")
+
+    embeddable = is_video_embeddable(request, video_id)
+
+    if embeddable is None:
+        messages.error(request, "Error searching for tracks. Please try again.")
+        embeddable = False
+        return redirect("google_auth")
+
+    if not embeddable:
+        messages.error(
+            request, "This YouTube video could not be found or cannot be embed."
+        )
+        return redirect("music_search")
+
     track_info = get_track_info(artist, title)
     if not track_info:
         messages.error(request, "Could not find track information. Please try again.")
         return redirect("music_search")
 
-    if request.method != "POST":
-        return redirect("music_search")
-
-    video_id = request.POST.get("video_id")
     card_types = request.POST.getlist("card_types") or None
     existing_set_id = request.POST.get("existing_set")
-
-    if not video_id:
-        messages.error(request, "You must select a YouTube video.")
-        return redirect("create_set")
 
     if existing_set_id:
         flashcard_set = get_object_or_404(Set, id=existing_set_id, owner=request.user)
@@ -416,4 +461,4 @@ def create_set(request):
     messages.success(
         request, f"Created '{flashcard_set.name}' with {len(flashcard_data)} cards!"
     )
-    return redirect("set_view", set_id=flashcard_set.id, name=flashcard_set.name)
+    return redirect("set_view", set_id=flashcard_set.id)

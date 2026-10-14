@@ -1,7 +1,7 @@
 {% extends "cards/layout.html" %}
 
 {% block title %}
-    {{ name }}
+    {{ content.name }}
 {% endblock %}
 
 {% block body %}
@@ -9,23 +9,23 @@
     By {{ content.owner.username }}
     <div> {{ content.description }}</div>
 
-    <a href="{% url 'study' content.id content.name %}"> Use Flashcard </a>
+    <a href="{% url 'study' content.id %}"> Use Flashcard </a>
 
     {% if request.user == content.owner %}
-        <a href="{% url 'edit' content.id content.name %}">Add Cards</a>
-        <a href="{% url 'set_stats' content.id content.name %}">View Set Stats</a>
+        <a href="{% url 'edit' content.id %}">Add Cards</a>
+        <a href="{% url 'set_stats' content.id %}">View Set Stats</a>
     {% elif request.user.is_authenticated %}
-            <form method="post" action="{% url 'save_set' content.id content.name %}">
+            <form method="post" action="{% url 'save_set' content.id %}">
                 {% csrf_token %}
 
                 {% if request.user in content.saved_by.all %}
                     <button type="submit">Unsave Set</button>
                 {% else %}
-                    <button type="submit">Unsave Set</button>
+                    <button type="submit">Save Set</button>
                 {% endif %}
 
             </form>
-        <a href="{% url 'set_stats' content.id content.name %}">View Set Stats</a>
+        <a href="{% url 'set_stats' content.id %}">View Set Stats</a>
     {% endif %}
 
     {% for card in cards %}

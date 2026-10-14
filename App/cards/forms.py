@@ -4,17 +4,26 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import Card, Set
 
 
-class loginForm(forms.Form):
+class LoginForm(forms.Form):
     username = forms.CharField(max_length=150)
     password = forms.CharField(widget=forms.PasswordInput)
 
 
-class registerForm(UserCreationForm):
+class RegisterForm(UserCreationForm):
     email = forms.EmailField(required=True)
 
     class Meta:
         model = get_user_model()
         fields = ["username", "email", "password1", "password2"]
+
+    def clean_email(self):
+        model = get_user_model()
+        email = self.cleaned_data["email"]
+
+        if model.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("An account with this email already exists.")
+
+        return email
 
 
 class NewSet(forms.ModelForm):
@@ -40,6 +49,7 @@ class NewCard(forms.ModelForm):
 
 
 class Gradeform(forms.Form):
+    card_id = forms.IntegerField(widget=forms.HiddenInput())
     choices = [(0, "Again"), (1, "Hard"), (2, "Good"), (3, "Easy")]
 
     grade = forms.ChoiceField(choices=choices, widget=forms.RadioSelect)
