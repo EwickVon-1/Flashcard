@@ -1,43 +1,43 @@
 import json
 
-from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
+from cards.services.lastfm_service import (
+    build_flashcard_data,
+    get_track_info,
+)
 from cards.services.music_service import (
-    search_tracks_with_videos,
     is_valid_video,
     is_video_embeddable,
+    search_tracks_with_videos,
 )
 from cards.services.set_service import toggle_save_set
 from cards.services.stats_service import get_study_stats
 from cards.services.study_service import (
     create_query,
-    get_next_card,
-    process_grade,
-    increment_query,
     destroy_query,
-)
-from cards.services.lastfm_service import (
-    get_track_info,
-    build_flashcard_data,
+    get_next_card,
+    increment_query,
+    process_grade,
 )
 from cards.utils.form_handler import handle_form
+from cards.utils.google_oauth import GoogleOAuthService
 from cards.utils.permissions import authenticate_user_permission
-from cards.utils.google_oauth import get_auth_url, request_token
 
 from .forms import (
-    SearchForm,
-    RegisterForm,
-    LoginForm,
     Gradeform,
+    LoginForm,
     NewCard,
     NewSet,
+    RegisterForm,
+    SearchForm,
 )
-from .models import Card, Set, GoogleToken, StudyData
+from .models import Card, GoogleToken, Set, StudyData
 
 QUEUE_PREFIX = "queue"
 
@@ -99,7 +99,7 @@ def logout_view(request):
 
 @login_required
 def google_auth(request):
-    return redirect(get_auth_url(request))
+    return redirect(GoogleOAuthService.get_authorization_url(request))
 
 
 @login_required
@@ -109,13 +109,16 @@ def google_callback(request):
         messages.error(request, f"Google authentication failed: {error}")
         return redirect("index")
 
-    code = request.GET.get("code")
-    state = request.GET.get("state")
+    transaction = request.GET.get(GoogleOAuthService.TOKEN_URL)
+
+    code = transaction.get("verifier") 
+    state = transaction.get("state")
+
     if not code:
         messages.error(request, "Google authentication failed: No code provided.")
         return redirect("index")
 
-    if not request_token(request, code, state):
+    if not GoogleOAuthService.request_token(request, code, state):
         messages.error(request, "Google authentication failed: Unable to obtain token.")
         return redirect("index")
     return redirect("index")
