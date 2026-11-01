@@ -10,11 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from pathlib import Path
 from datetime import timedelta
-from dotenv import load_dotenv
-from django.contrib.messages import constants as messages
 from os import getenv
+from pathlib import Path
+
+from django.contrib.messages import constants as messages
+from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()

@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+
 from django.db.models import Count
 
 

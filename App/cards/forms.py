@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
+
 from .models import Card, Set
 
 
@@ -14,7 +15,7 @@ class RegisterForm(UserCreationForm):
 
     class Meta:
         model = get_user_model()
-        fields = ["username", "email", "password1", "password2"]
+        fields = ("username", "email", "password1", "password2")
 
     def clean_email(self):
         model = get_user_model()
@@ -29,7 +30,7 @@ class RegisterForm(UserCreationForm):
 class NewSet(forms.ModelForm):
     class Meta:
         model = Set
-        fields = ["name", "description"]
+        fields = ("name", "description")
         widgets = {"description": forms.Textarea(attrs={"rows": 5})}
 
 
@@ -44,13 +45,13 @@ class AddToSetForm(forms.Form):
 class NewCard(forms.ModelForm):
     class Meta:
         model = Card
-        fields = ["question", "answer"]
+        fields = ("question", "answer")
         widgets = {"answer": forms.Textarea(attrs={"rows": 5})}
 
 
 class Gradeform(forms.Form):
     card_id = forms.IntegerField(widget=forms.HiddenInput())
-    choices = [(0, "Again"), (1, "Hard"), (2, "Good"), (3, "Easy")]
+    choices = ((0, "Again"), (1, "Hard"), (2, "Good"), (3, "Easy"))
 
     grade = forms.ChoiceField(choices=choices, widget=forms.RadioSelect)
 

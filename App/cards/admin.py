@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import User, Set, Card, StudyData, GoogleToken
+
+from .models import Card, GoogleToken, Set, StudyData, User
 
 # Register your models here.
 admin.site.register(User)

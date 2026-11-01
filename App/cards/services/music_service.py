@@ -1,26 +1,23 @@
 from re import compile
+
 from cards.services.lastfm_service import search_track
 from cards.services.youtube_service import (
     build_search_query,
     get_youtube_client,
     search_videos,
 )
-from cards.utils.google_oauth import get_valid_token
-
+from cards.utils.google_oauth import GoogleOAuthService
 from django.core.cache import cache
 
 YOUTUBE_ID_PATTERN = compile("^[A-Za-z0-9_-]{11}$")
 
 
-def is_valid_video(video_id) -> bool:
-    if not YOUTUBE_ID_PATTERN.fullmatch(video_id):
-        return False
-    return True
+def is_valid_video(video_id : str):
+    return YOUTUBE_ID_PATTERN.fullmatch(video_id)
 
-
-def is_video_embeddable(request, video_id):
+def is_video_embeddable(request, video_id : str):
     # Returns True if Youtube confirms that video exists and is embeddable
-    token = get_valid_token(request.user)
+    token = GoogleOAuthService.get_valid_token(request.user)
     if not token:
         return None
 
@@ -54,7 +51,7 @@ def search_videos_cached(yt, query, limit=2):
 
 
 def search_tracks_with_videos(request, query, track_limit=3, video_limit=1):
-    token = get_valid_token(request.user)
+    token = GoogleOAuthService.get_valid_token(request.user)
     if not token:
         return None
     tracks = search_track(query, limit=track_limit)

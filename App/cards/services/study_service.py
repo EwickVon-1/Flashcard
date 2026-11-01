@@ -1,6 +1,7 @@
-from datetime import date, timedelta
-from django.shortcuts import get_object_or_404
+from datetime import date
+
 from cards.models import Card, StudyData
+from django.shortcuts import get_object_or_404
 
 MAX_NEW_CARDS_TO_STUDY = 5
 
