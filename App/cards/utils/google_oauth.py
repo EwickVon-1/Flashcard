@@ -98,7 +98,7 @@ class GoogleOAuthService:
         access_token = data.get("access_token")
         expires_in = data.get("expires_in")
 
-        expires_at = timezone.now() + timedelta(seconds=expires_in)
+        expires_at = timezone.now() + timedelta(seconds=expires_in) # type: ignore
         defaults = {"access_token": access_token, "expires_at": expires_at}
 
         # Google may omit refresh tokens on subsequent authorization
@@ -112,12 +112,14 @@ class GoogleOAuthService:
         )
         return True
 
+    # Tries to retrieve a valid token from a user, if the token is expired, we try to 
+    # refresh it.
     @classmethod
     def get_valid_token(cls, user):
         try:
             token = user.google_token
         except GoogleToken.DoesNotExist:
-            return None
+            return ""
 
         # If the token is expired or no access token then we try to refresh it
         if (
@@ -126,10 +128,10 @@ class GoogleOAuthService:
             or token.expires_at <= timezone.now() + timedelta(seconds=60)
         ):            
             if not token.refresh_token:
-                return None
+                return ""
 
             if not cls._refresh_token(token):
-                return None
+                return ""
 
         return token.access_token
 
