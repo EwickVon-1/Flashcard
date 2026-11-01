@@ -2,13 +2,20 @@ from datetime import timedelta
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
-from django.contrib.auth import get_user_model
-from django.contrib.sessions.middleware import SessionMiddleware
-from django.http import HttpResponse
-from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
+import requests
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
 from cards.models import GoogleToken
+from cards.tests.base import (
+    FAST_PASSWORD_HASHER,
+    GOOGLE_SETTINGS,
+    FrozenTime,
+    fake_response,
+    make_google_token,
+    make_request,
+    make_user,
+)
 from cards.utils.google_oauth import GoogleOAuthService
 
 
@@ -112,19 +119,15 @@ class CodeChallengeTest(SimpleTestCase):
         with self.assertRaises(ValueError):
             GoogleOAuthService._generate_code_challenge("a" * 42 + " " + "b")
 
-
-@override_settings(
-    GOOGLE_CLIENT_ID="test-client-id",
-    GOOGLE_SCOPE="youtube.readonly",
-    GOOGLE_REDIRECT_URI="http://localhost:8000/auth/callback/",
-)
+@FAST_PASSWORD_HASHER
+@override_settings(**GOOGLE_SETTINGS)
 class GetAuthUrlTests(SimpleTestCase):
+
     def setUp(self):
-        self.factory = RequestFactory()
-        self.request = self.factory.get("/")
+        self.request = make_request()
 
-        self.request.session = {} # type: ignore
-
+        self.request.session = {}
+        
     @patch(
         "cards.utils.google_oauth.GoogleOAuthService._generate_code_challenge",
         return_value="test-code-challenge",
@@ -178,8 +181,26 @@ class GetAuthUrlTests(SimpleTestCase):
         mock_code_verifier.assert_called_once_with()
         mock_code_challenge.assert_called_once_with("test-code-verifier")
 
+    def test_code_challenge_matches_session_verifier(self):
+        url = GoogleOAuthService.get_authorization_url(self.request)
+
+        parsed_url = urlparse(url)
+        query_params = parse_qs(parsed_url.query)
+
+        # Retrieve the verifier stored in the session
+        session_data = self.request.session[GoogleOAuthService._SESSION_KEY]
+        verifier = session_data["verifier"]
+
+        # Generate the expected challenge using the session verifier
+        expected_challenge = GoogleOAuthService._generate_code_challenge(verifier)
+
+        self.assertEqual(
+            query_params["code_challenge"][0],
+            expected_challenge,
+        )
+
     def test_request_without_session(self):
-        new_request = self.factory.get("/")
+        new_request = make_request()
 
         with self.assertRaises(AttributeError):
             GoogleOAuthService.get_authorization_url(new_request)
@@ -188,45 +209,68 @@ class GetAuthUrlTests(SimpleTestCase):
         with self.assertRaises(AttributeError):
             GoogleOAuthService.get_authorization_url(None)
 
-@override_settings(
-    GOOGLE_CLIENT_ID="test-client-id",
-    GOOGLE_CLIENT_SECRET="test-client-secret",
-    GOOGLE_REDIRECT_URI="http://localhost:8000/auth/callback/",
-)
+    def test_consecutive_calls_generate_unique_values_and_overwrite_session(self):
+        # First call
+        first_url = GoogleOAuthService.get_authorization_url(self.request)
+        first_session = self.request.session[GoogleOAuthService._SESSION_KEY].copy()
+
+        first_params = parse_qs(urlparse(first_url).query)
+
+        # Second call
+        second_url = GoogleOAuthService.get_authorization_url(self.request)
+        second_session = self.request.session[GoogleOAuthService._SESSION_KEY].copy()
+
+        second_params = parse_qs(urlparse(second_url).query)
+
+        # Verify that generated values are unique
+        self.assertNotEqual(first_session["verifier"], second_session["verifier"])
+        self.assertNotEqual(first_session["state"], second_session["state"])
+        self.assertNotEqual(
+            first_params["code_challenge"],
+            second_params["code_challenge"],
+        )
+
+        # Verify that the session contains the second call's values
+        self.assertEqual(
+            self.request.session[GoogleOAuthService._SESSION_KEY],
+            second_session,
+        )
+
+        self.assertNotEqual(first_session, second_session)
+
+        # Verify that the second URL contains the second call's state
+        self.assertEqual(second_params["state"][0], second_session["state"])
+
+@FAST_PASSWORD_HASHER
+@override_settings(**GOOGLE_SETTINGS)
 class RequestTokenTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+
     def setUp(self):
-        self.factory = RequestFactory()
-        self.request = self.factory.post("/oauth/callback")
+        self.request = make_request(
+                user=self.user,
+                method="post",
+                with_session=True,
+                path="/oauth/callback",
+                )
 
-        middleware = SessionMiddleware(lambda request: HttpResponse())
-        middleware.process_request(self.request)
-        self.request.session.save()
-
-        User = get_user_model()
-        self.user = User.objects.create_user( # type: ignore
-                username ="oauth-test-user",
-                email = "oauth-test@example.com",
-                password = "test-password"
-)
-
-        self.request.user = self.user
-
-        # Store test state and verifiers
         self.transaction = {
                 "verifier": "expected-code",
-                "state": "expected-state"
+                "state": "expected-state",
                 }
 
         self.request.session[GoogleOAuthService._SESSION_KEY] = (
                 self.transaction.copy()
                 )
 
-        # We create a Mock response 
         self.valid_response = {
-                "access_token": "test-access-token",
-                "expires_in": 3600,
-                "refresh_token": "test-refresh-token"
-                }
+            "access_token": "test-access-token",
+            "expires_in": 3600,
+            "refresh_token": "test-refresh-token",
+        }
 
     @patch("cards.utils.google_oauth.GoogleOAuthService._exchange_token") 
     def test_successful_token_exchange(self, mock_exchange):
@@ -288,8 +332,6 @@ class RequestTokenTests(TestCase):
         result = GoogleOAuthService.request_token(self.request, "expected-code", "expected-state")
         self.assertFalse(result)
 
- 
-
     def test_diff_state(self):
         result = GoogleOAuthService.request_token(self.request, "expected-code", "unexpected-state")
         self.assertFalse(result)
@@ -323,35 +365,34 @@ class RequestTokenTests(TestCase):
                         "expected-state",
                     )
                     self.assertFalse(result)
-    @patch(
-            "cards.utils.google_oauth.GoogleOAuthService._exchange_token"
-        )
-    def test_invalid_transaction_does_not_exchange_token(self, mock_exchange):
-            self.request.session[GoogleOAuthService._SESSION_KEY] = {
-                "state": "expected-state",
-                "verifier": None,
-            }
 
-            result = GoogleOAuthService.request_token(
+    @patch("cards.utils.google_oauth.GoogleOAuthService._exchange_token")
+    def test_invalid_transaction_does_not_exchange_token(self, mock_exchange):
+        self.request.session[GoogleOAuthService._SESSION_KEY] = {
+            "state": "expected-state",
+            "verifier": None,
+        }
+
+        result = GoogleOAuthService.request_token(
+            self.request,
+            "authorization-code",
+            "expected-state",
+        )
+
+        self.assertFalse(result)
+        mock_exchange.assert_not_called()
+
+    @patch("cards.utils.google_oauth.GoogleOAuthService._exchange_token")
+    def test_exchange_token_fails(self, mock_exchange):
+        mock_exchange.return_value = {}
+
+        result = GoogleOAuthService.request_token(
                 self.request,
                 "authorization-code",
-                "expected-state",
-            )
+                "expected-state"
+                )
 
-            self.assertFalse(result)
-            mock_exchange.assert_not_called()
-
-            @patch("cards.utils.google_oauth.GoogleOAuthService._exchange_token")
-            def test_exchange_token_fails(self, mock_exchange):
-                mock_exchange.return_value = {}
-
-                result = GoogleOAuthService.request_token(
-                        self.request,
-                        "authorization-code",
-                        "expected-state"
-                        )
-
-                self.assertFalse(result)
+        self.assertFalse(result)
 
     @patch("cards.utils.google_oauth.GoogleOAuthService._exchange_token")
     def test_refresh_token_is_optional(self, mock_exchange):
@@ -423,33 +464,22 @@ class RequestTokenTests(TestCase):
         self.assertFalse(second_result)
 
 
-
-@override_settings(
-        GOOGLE_CLIENT_ID = "test-client-id",
-        GOOGLE_CLIENT_SECRET = "test-client-secret"
-        )
+@FAST_PASSWORD_HASHER
+@override_settings(**GOOGLE_SETTINGS)
 class RefreshTokenTests(TestCase):
- 
-    def setUp(self):
-        User = get_user_model()
-        self.user = User.objects.create_user( # type: ignore
-                username ="oauth-test-user",
-                email = "oauth-test@example.com",
-                password = "test-password"
-                )
 
-        self.token = GoogleToken.objects.create(
-                user = self.user,
-                access_token = "test-access-token",
-                refresh_token = "test-refresh-token",
-                expires_at = timezone.now() + timedelta(seconds = 3600)
-                )
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+
+    def setUp(self):
+        self.token = make_google_token(self.user)
 
         self.valid_response = {
             "access_token": "new-access-token",
             "expires_in": 3600,
-            "refresh_token": "new-refresh-token"
-        } 
+            "refresh_token": "new-refresh-token",
+            }
 
     @patch("cards.utils.google_oauth.GoogleOAuthService._exchange_token")
     def test_successful_token_refresh(self, mock_exchange):
@@ -511,6 +541,7 @@ class RefreshTokenTests(TestCase):
 
         self.assertEqual(token.refresh_token, "test-refresh-token")
 
+@FAST_PASSWORD_HASHER
 class TestExchangeToken(SimpleTestCase):
     def setUp(self):
         self.payload = {
@@ -519,14 +550,13 @@ class TestExchangeToken(SimpleTestCase):
                 }
 
         # Create a mock response from Google
-        self.valid_response = Mock()
-        self.valid_response.ok = True
-        self.valid_response.status_code = 200
-        self.valid_response.json.return_value = {
+        self.valid_response = fake_response(
+            json={
                 "access_token": "test-access-token",
                 "expires_in": 3600,
                 "refresh_token": "test-refresh-token",
-                }
+            })
+
     @patch("cards.utils.google_oauth.requests.post")
     def test_successful_token_exchange(self, mock_post):
         mock_post.return_value = self.valid_response
@@ -557,9 +587,7 @@ class TestExchangeToken(SimpleTestCase):
 
     @patch("cards.utils.google_oauth.requests.post")
     def test_http_fails(self, mock_post):
-        response = Mock()
-        response.ok = False
-        response.status_code = 400
+        response = fake_response(json = {}, ok=False, status=400)
 
         mock_post.return_value = response
         with self.assertLogs("cards.utils.google_oauth", level="WARNING"):
@@ -568,21 +596,18 @@ class TestExchangeToken(SimpleTestCase):
 
     @patch("cards.utils.google_oauth.requests.post")
     def test_invalid_json_returned(self, mock_post):
-       response = Mock() 
-       response.ok = True
-       response.status_code = 200
+        response = fake_response(json = {})
 
-       for invalid in [5, "access_token", -45, None]:
-           with self.subTest(data=invalid):
-               response.json.return_value = invalid
-               mock_post.return_value = response
+        for invalid in [5, "access_token", -45, None]:
+            with self.subTest(data=invalid):
+                response.json.return_value = invalid
+                mock_post.return_value = response
 
-               with self.assertLogs("cards.utils.google_oauth", level="WARNING"):
-                   self.assertEqual(GoogleOAuthService._exchange_token(self.payload), {})
+                with self.assertLogs("cards.utils.google_oauth", level="WARNING"):
+                    self.assertEqual(GoogleOAuthService._exchange_token(self.payload), {})
 
     @patch("cards.utils.google_oauth.requests.post")
     def test_request_failure(self, mock_post):
-        import requests
 
         mock_post.side_effect = requests.RequestException("Network Error")
 
@@ -593,9 +618,8 @@ class TestExchangeToken(SimpleTestCase):
 
     @patch("cards.utils.google_oauth.requests.post")
     def test_invalid_json_response(self, mock_post):
-        response = Mock()
-        response.ok = True
-        response.json.side_effect = ValueError("Invalid JSON")
+        response = fake_response(json={}, ok=True, json_error=ValueError("Invalid JSON"))
+
         mock_post.return_value = response
 
         with self.assertLogs("cards.utils.google_oauth", level="WARNING"):
@@ -609,12 +633,11 @@ class TestExchangeToken(SimpleTestCase):
 
         for invalid in invalid_values:
             with self.subTest(access_token=invalid):
-                response = Mock()
-                response.ok = True
-                response.json.return_value = {
+                response = fake_response(json = {
                     "access_token": invalid,
-                    "expires_in": 3600,
-                }
+                    "expires_in": 3600
+                    })
+
                 mock_post.return_value = response
 
                 with self.assertLogs("cards.utils.google_oauth", level="WARNING"):
@@ -640,12 +663,11 @@ class TestExchangeToken(SimpleTestCase):
 
         for invalid in invalid_values:
             with self.subTest(expires_in=invalid):
-                response = Mock()
-                response.ok = True
-                response.json.return_value = {
+                response = fake_response(json= {
                     "access_token": "test-access-token",
                     "expires_in": invalid,
-                }
+                    })
+
                 mock_post.return_value = response
 
                 with self.assertLogs("cards.utils.google_oauth", level="WARNING"):
@@ -656,23 +678,14 @@ class TestExchangeToken(SimpleTestCase):
                     self.assertEqual(result, {})
         
 
-class TestGetToken(TestCase):
+class GetTokenTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+
     def setUp(self):
-        User = get_user_model()
-        self.user = User.objects.create_user( # type: ignore
-            username ="oauth-test-user",
-            email = "oauth-test@example.com",
-            password = "test-password"
-            )
-
-        self.token = GoogleToken.objects.create(
-                user = self.user,
-                access_token = "test-access-token",
-                refresh_token = "test-refresh-token",
-                expires_at = timezone.now() + timedelta(seconds = 3600)
-                )
-
-        self.token.save()
+        self.token = make_google_token(self.user)
 
     def test_valid_token(self):
         result = GoogleOAuthService.get_valid_token(self.user)
@@ -680,14 +693,8 @@ class TestGetToken(TestCase):
         self.assertEqual(result, "test-access-token")
 
     def test_no_token(self):
-        User = get_user_model()
-        user2 = User.objects.create_user(  # type: ignore
-            username ="test-user2",
-            email = "oauth-test2@example.com",
-            password = "test-password"
-            )
-
-        result = GoogleOAuthService.get_valid_token(user2)
+        user = make_user()
+        result = GoogleOAuthService.get_valid_token(user)
         self.assertEqual(result, "")
 
     def test_expired_no_refresh(self):
@@ -706,6 +713,8 @@ class TestGetToken(TestCase):
 
         result = GoogleOAuthService.get_valid_token(self.user)
         self.assertEqual(result, "")
+
+        mock_refresh.assert_called_once()
   
     @patch("cards.utils.google_oauth.GoogleOAuthService._refresh_token")
     def test_expired_refresh_success(self, mock_refresh):
@@ -717,23 +726,29 @@ class TestGetToken(TestCase):
             return True
 
         mock_refresh.side_effect = side_effect
+        self.token.expires_at = timezone.now()
 
         result = GoogleOAuthService.get_valid_token(self.user)
         self.assertTrue(result)
+        
+        mock_refresh.assert_called_once()
+
+        self.assertEqual(self.token.refresh_token, "new-refresh-token")
 
     def test_almost_expired(self): 
-        self.token.refresh_token = None
-        self.token.expires_at = timezone.now() + timedelta(seconds=61)
-        self.token.save()
+        with FrozenTime() as frozen_now:
+            self.token.refresh_token = None
+            self.token.expires_at = frozen_now + timedelta(seconds=61)
+            self.token.save()
 
-        self.assertEqual(GoogleOAuthService.get_valid_token(self.user), "test-access-token") 
+            self.assertEqual(GoogleOAuthService.get_valid_token(self.user), "test-access-token") 
 
-        self.token.expires_at = timezone.now() + timedelta(seconds = 60)
-        self.token.save()
+            self.token.expires_at = frozen_now + timedelta(seconds = 60)
+            self.token.save()
 
-        self.assertEqual(GoogleOAuthService.get_valid_token(self.user), "")
+            self.assertEqual(GoogleOAuthService.get_valid_token(self.user), "")
 
-        self.token.expires_at = timezone.now() + timedelta(seconds = 59)
-        self.token.save()
+            self.token.expires_at = frozen_now + timedelta(seconds = 59)
+            self.token.save()
 
-        self.assertEqual(GoogleOAuthService.get_valid_token(self.user), "")
+            self.assertEqual(GoogleOAuthService.get_valid_token(self.user), "")

@@ -253,4 +253,4 @@ class GoogleOAuthService:
             logger.warning("Google returned an invalid token response")
             return {}
 
-        return data 
+        return data

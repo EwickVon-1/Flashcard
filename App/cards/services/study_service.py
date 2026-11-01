@@ -26,7 +26,7 @@ def get_next_card(user, set_id):
 
 def process_grade(user, card_id, set_id, grade):
     card = get_object_or_404(Card, id=card_id, set_id=set_id)
-    study_data, created = StudyData.objects.get_or_create(user=user, card=card)
+    study_data, _ = StudyData.objects.get_or_create(user=user, card=card)
     study_data.update_study_data(grade)
 
     

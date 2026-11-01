@@ -109,7 +109,7 @@ def google_callback(request):
         messages.error(request, f"Google authentication failed: {error}")
         return redirect("index")
 
-    transaction = request.GET.get(GoogleOAuthService.TOKEN_URL)
+    transaction = request.GET.get(GoogleOAuthService._SESSION_KEY)
 
     code = transaction.get("verifier") 
     state = transaction.get("state")
