@@ -1,14 +1,23 @@
+from typing import Any, TypeVar
+
 from django import forms
+from django.http import HttpRequest
 
+FormType = TypeVar("FormType", bound=forms.ModelForm)
+def handle_form(request: HttpRequest, 
+                form_class: type[FormType], 
+                instance: Any | None = None, 
+                initial: dict[str, Any] | None = None
+                ) -> tuple[FormType, bool]: 
+    
+    kwargs: dict[str, Any] = {}
 
-def handle_form(request, form_class, instance=None, initial=None):
-    kwargs = {}
-    if issubclass(form_class, forms.ModelForm) and instance is not None:
+    if instance is not None:
         kwargs["instance"] = instance
 
     if request.method == "POST":
-        form = form_class(request.POST, **kwargs)
-        return form, form.is_valid()
-
-    form = form_class(initial=initial, **kwargs)
-    return form, False
+        form = form_class(request.POST, **kwargs) 
+    else:
+        form = form_class(initial=initial, **kwargs)
+    
+    return form, request.method == "POST" and form.is_valid()

@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 import requests
 from cards.models import GoogleToken
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -91,6 +92,11 @@ class GoogleOAuthService:
             "code_verifier": verifier,
         }
 
+        if (not payload.get("client_id") 
+            or not payload.get("client_secret")
+            or not payload.get("redirect_uri")):
+            raise ImproperlyConfigured("client_id, client_secret and redirect_uri not supplied.")
+
         data = GoogleOAuthService._exchange_token(payload)
         if not data:
             return False
@@ -124,7 +130,6 @@ class GoogleOAuthService:
         # If the token is expired or no access token then we try to refresh it
         if (
             not token.access_token
-            or not token.expires_at
             or token.expires_at <= timezone.now() + timedelta(seconds=60)
         ):            
             if not token.refresh_token:
@@ -152,6 +157,10 @@ class GoogleOAuthService:
             "client_id": settings.GOOGLE_CLIENT_ID,
             "client_secret": settings.GOOGLE_CLIENT_SECRET,
         }
+
+        if (not payload.get("client_id") 
+            or not payload.get("client_secret")):
+                    raise ImproperlyConfigured("client_id and client_secret not supplied.")
 
         data = GoogleOAuthService._exchange_token(payload)
         if not data:

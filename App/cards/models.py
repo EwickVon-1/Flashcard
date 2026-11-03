@@ -14,7 +14,7 @@ class GoogleToken(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="google_token"
     )
-    access_token = models.CharField(max_length=255)
+    access_token = models.CharField(max_length=255, null=True)
     refresh_token = models.CharField(max_length=255, null=True)
     expires_at = models.DateTimeField()
 
